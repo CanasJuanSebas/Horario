@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Horario Escolar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2e6b10">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -282,6 +284,15 @@ let allData = {};
 async function initRealtime() {
   const statusDot = document.getElementById('connection-status');
   
+  // Registrar Service Worker para notificaciones en segundo plano
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('Service Worker registrado:', reg);
+    }).catch(err => {
+      console.error('Error al registrar Service Worker:', err);
+    });
+  }
+
   // Solicitar permiso para notificaciones
   if ("Notification" in window) {
     Notification.requestPermission();
@@ -387,10 +398,18 @@ function sendNativeNotification(row) {
   const title = `Nueva tarea en ${subject}`;
   const options = {
     body: `Que hay que hacer:\n${row.task}`,
-    icon: 'https://cdn-icons-png.flaticon.com/512/2098/2098402.png' // Icono de tarea
+    icon: 'https://cdn-icons-png.flaticon.com/512/2098/2098402.png',
+    badge: 'https://cdn-icons-png.flaticon.com/512/2098/2098402.png'
   };
 
-  new Notification(title, options);
+  // Usar Service Worker si está disponible (mejor para celulares)
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, options);
+    });
+  } else {
+    new Notification(title, options);
+  }
 }
 
 function showToast(msg) {
