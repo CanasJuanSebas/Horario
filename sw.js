@@ -3,8 +3,8 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'Nueva actualización';
   const options = {
     body: data.body || 'Hay cambios en el horario.',
-    icon: 'https://imgur.com/a/2p3YWju',
-    badge: 'https://imgur.com/a/2p3YWju',
+    icon: 'colegio.png',
+    badge: 'colegio.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -26,8 +26,8 @@ self.addEventListener('message', (event) => {
     const title = event.data.title;
     const options = {
       body: event.data.body,
-      icon: 'https://imgur.com/a/2p3YWju',
-      badge: 'https://imgur.com/a/2p3YWju',
+      icon: 'colegio.png',
+      badge: 'colegio.png',
       tag: 'schedule-update', // Evita spam de notificaciones
       renotify: true,
       vibrate: [100, 50, 100]
