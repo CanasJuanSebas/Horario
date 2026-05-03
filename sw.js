@@ -80,7 +80,7 @@ setInterval(() => {
       if (currentTime === block.start) {
         showNotification(taskData, `🔔 Empieza ${subject} (Tienes pendiente)`);
       } else if (currentTime === block.end) {
-        showNotification(taskData, `✅ Terminó ${subject} (¿Hiciste la tarea?)`);
+        showNotification(taskData, `✅ Terminó ${subject} (Confirma si resolviste el pendiente)`);
       }
     }
   });
