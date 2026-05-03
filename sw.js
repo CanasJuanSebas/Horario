@@ -17,25 +17,78 @@ const MATS_NAMES = {
   '7-0':'Edu. Física', '7-1':'Economía',    '7-2':'Química',   '7-3':'Religión',
 };
 
+// Horarios de inicio y fin por bloque (index 0-7 y militar)
+const BLOCK_TIMES = [
+  { start: '07:00', end: '07:50' },
+  { start: '07:50', end: '08:40' },
+  { start: '08:40', end: '09:30' },
+  { start: '09:50', end: '10:40' },
+  { start: '10:40', end: '11:30' },
+  { start: '11:30', end: '12:20' },
+  { start: '12:50', end: '13:40' },
+  { start: '13:40', end: '14:30' },
+  { start: '14:30', end: '16:00', isMil: true } // Militar
+];
+
+let localTasks = {}; // Cache local para programar recordatorios
+
 // Inicializar Supabase
 if (typeof supabase !== 'undefined') {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   
-  // Escuchar cambios en tiempo real desde el segundo plano
+  // Carga inicial para recordatorios
+  supabaseClient.from('schedules').select('*').then(({data}) => {
+    if(data) data.forEach(r => localTasks[`${r.week_number}-${r.cell_key}`] = r);
+  });
+
+  // Escuchar cambios en tiempo real
   supabaseClient
     .channel('public:schedules')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
-      const row = payload.new;
-      if (row && row.task) {
-        showNotification(row);
+      const row = payload.new || payload.old;
+      if (payload.eventType === 'DELETE') {
+        delete localTasks[`${row.week_number}-${row.cell_key}`];
+      } else {
+        localTasks[`${row.week_number}-${row.cell_key}`] = row;
+        if (row.task) showNotification(row, "¡Nueva tarea asignada!");
       }
     })
     .subscribe();
 }
 
-function showNotification(row) {
+// Revisar cada minuto si alguna clase empieza o termina
+setInterval(() => {
+  const now = new Date();
+  const day = now.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie
+  if (day < 1 || day > 5) return; // Solo Lun-Vie
+
+  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  
+  // Lógica para encontrar la semana actual (basada en ANCHOR_WEEK)
+  const ANCHOR_MON = new Date(2026, 4, 4);
+  const diffDays = Math.floor((now - ANCHOR_MON) / (1000 * 60 * 60 * 24));
+  const currentWeekNum = 14 + Math.floor(diffDays / 7);
+
+  BLOCK_TIMES.forEach((block, idx) => {
+    const colIdx = day - 1;
+    const cellKey = block.isMil ? `mil-${colIdx}` : `${idx}-${colIdx}`;
+    const taskData = localTasks[`${currentWeekNum}-${cellKey}`];
+
+    if (taskData && taskData.task) {
+      const subject = block.isMil ? "Fase Militar" : (MATS_NAMES[cellKey] || "Materia");
+      
+      if (currentTime === block.start) {
+        showNotification(taskData, `🔔 Empieza ${subject} (Tienes pendiente)`);
+      } else if (currentTime === block.end) {
+        showNotification(taskData, `✅ Terminó ${subject} (¿Hiciste la tarea?)`);
+      }
+    }
+  });
+}, 60000); // Ejecutar cada 60 segundos
+
+function showNotification(row, customTitle) {
   const subject = row.cell_key.startsWith('mil-') ? "Fase Militar" : (MATS_NAMES[row.cell_key] || "Materia");
-  const title = `Nueva tarea en ${subject}`;
+  const title = customTitle || `Nueva tarea en ${subject}`;
   const options = {
     body: `Que hay que hacer:\n${row.task}`,
     icon: 'colegio.png',
