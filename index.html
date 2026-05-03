@@ -390,25 +390,34 @@ async function deleteFromDB(key) {
 }
 
 function sendNativeNotification(row) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    console.log("Permiso de notificación no concedido o no soportado");
+    return;
+  }
 
-  // Determinar el nombre de la materia o si es militar
   let subject = row.cell_key.startsWith('mil-') ? "Fase Militar" : (MATS[row.cell_key] || "Materia");
-  
   const title = `Nueva tarea en ${subject}`;
-  const options = {
-    body: `Que hay que hacer:\n${row.task}`,
-    icon: 'https://cdn-icons-png.flaticon.com/512/2098/2098402.png',
-    badge: 'https://cdn-icons-png.flaticon.com/512/2098/2098402.png'
-  };
+  const body = `Que hay que hacer:\n${row.task}`;
 
-  // Usar Service Worker si está disponible (mejor para celulares)
+  // 1. Intentar vía Service Worker (más fiable en móvil y segundo plano)
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.ready.then(reg => {
-      reg.showNotification(title, options);
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SHOW_NOTIFICATION',
+      title: title,
+      body: body
     });
-  } else {
+    console.log("Notificación enviada vía Service Worker");
+  } 
+  // 2. Fallback a notificación normal
+  else {
+    const options = {
+      body: body,
+      icon: 'https://imgur.com/a/2p3YWju',
+      badge: 'https://imgur.com/a/2p3YWju',
+      vibrate: [100, 50, 100]
+    };
     new Notification(title, options);
+    console.log("Notificación enviada vía API estándar");
   }
 }
 
