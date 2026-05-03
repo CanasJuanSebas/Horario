@@ -324,21 +324,33 @@ async function initRealtime() {
           instructor: row.instructor
         };
 
-        // Solo notificar si es una NUEVA tarea o si la tarea cambió y no fue hecha por el usuario actual
+        // Solo notificar si es una NUEVA tarea o si la tarea cambió
         const isNewTask = !oldEntry && row.task;
         const taskChanged = oldEntry && oldEntry.task !== row.task;
         
-        if ((isNewTask || taskChanged) && row.task) {
+        // Verificar si el cambio fue hecho por este mismo navegador
+        const lastEditKey = sessionStorage.getItem('last_edit_key');
+        const lastEditTask = sessionStorage.getItem('last_edit_task');
+        const isMyOwnEdit = lastEditKey === row.cell_key && lastEditTask === row.task;
+        
+        if ((isNewTask || taskChanged) && row.task && !isMyOwnEdit) {
+          console.log("Notificación para otro usuario/pestaña detectada");
           sendNativeNotification(row);
         }
       }
       
       buildTable();
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log("Estado de suscripción Realtime:", status);
+    });
 }
 
 async function saveToDB(key, entry) {
+  // Evitar que el propio usuario que guarda reciba su propia notificación
+  sessionStorage.setItem('last_edit_key', key);
+  sessionStorage.setItem('last_edit_task', entry ? entry.task : '');
+
   const isMilitar = key.startsWith('mil-');
   // Asegurarnos de que si la fecha es un string vacío, se guarde como null
   const formattedDate = (entry && entry.due && entry.due.trim() !== '') ? entry.due : null;
