@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Horario</title>
+<title>Horario Escolar</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2e6b10">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -403,7 +403,7 @@ function sendNativeNotification(row) {
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
     navigator.serviceWorker.controller.postMessage({
       type: 'SHOW_NOTIFICATION',
-      title: title,
+      cell_key: row.cell_key,
       body: body
     });
     console.log("Notificación enviada vía Service Worker");
