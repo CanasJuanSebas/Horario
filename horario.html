@@ -134,16 +134,24 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 .btn.primary:hover{background:#245a0d}
 .btn.primary-blue{background:#0b3d6b;color:#c7e3f8;border-color:#0b3d6b}
 .btn.primary-blue:hover{background:#09315a}
-.btn.danger{color:#8b1a1a;border-color:#f09595;background:transparent}
-.btn.danger:hover{background:#fff0f0}
-.divider{height:1px;background:var(--bd);margin:14px 0}
+  .btn.danger{color:#8b1a1a;border-color:#f09595;background:transparent}
+  .btn.danger:hover{background:#fff0f0}
+  .divider{height:1px;background:var(--bd);margin:14px 0}
+
+  /* Real-time Toast */
+  #toast-container{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px}
+  .toast{background:var(--tx);color:#fff;padding:12px 20px;border-radius:var(--rad-s);font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:slideIn 0.3s ease-out;display:flex;align-items:center;gap:10px}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  .toast.update{border-left:4px solid var(--g-br)}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block}
+  .status-dot.online{background:#2e6b10;box-shadow:0 0 5px #2e6b10}
 </style>
 </head>
 <body>
 <div class="page">
 
 <header>
-  <h1>Horario de Cañas</h1>
+  <h1>Horario de Cañas <span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
 </header>
 
 <div class="week-bar">
@@ -221,8 +229,17 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
   </div>
 </div>
 
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── CONFIGURACIÓN ──────────────────────────────────────────────
+// ── CONFIGURACIÓN SUPABASE ─────────────────────────────────────
+// IMPORTANTE: Reemplaza con tus credenciales de Supabase
+const SUPABASE_URL = 'https://kibomtadrvantlzjjyvc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lzuN3b6Q7POh5vC4EQ1IxQ_Xs26vbri';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── CONFIGURACIÓN HORARIO ──────────────────────────────────────
 // Semana 14 ancla en lunes 4 de mayo de 2026
 const ANCHOR_WEEK = 14;
 const ANCHOR_MON  = new Date(2026, 4, 4); // mes 4 = mayo (0-indexed)
@@ -260,8 +277,119 @@ const MATS = {
 // ── ESTADO ─────────────────────────────────────────────────────
 let currentWeek = ANCHOR_WEEK;
 let allData = {};
-try { const s = localStorage.getItem('horario_v5'); if(s) allData = JSON.parse(s); } catch(e){}
-function save(){ try{ localStorage.setItem('horario_v5', JSON.stringify(allData)); }catch(e){} }
+
+// Carga inicial y Sincronización Real-time
+async function initRealtime() {
+  const statusDot = document.getElementById('connection-status');
+  
+  // Solicitar permiso para notificaciones
+  if ("Notification" in window) {
+    Notification.requestPermission();
+  }
+  
+  // 1. Cargar datos iniciales de Supabase
+  const { data, error } = await supabaseClient.from('schedules').select('*');
+  if (error) {
+    showToast('Error al cargar datos: ' + error.message);
+  } else {
+    // Transformar array de DB a objeto allData
+    data.forEach(row => {
+      if (!allData[row.week_number]) allData[row.week_number] = {};
+      allData[row.week_number][row.cell_key] = {
+        task: row.task,
+        due: row.due_date,
+        instructor: row.instructor
+      };
+    });
+    statusDot.classList.add('online');
+    statusDot.title = 'Conectado';
+    buildTable();
+  }
+
+  // 2. Escuchar cambios en tiempo real
+  supabaseClient
+    .channel('public:schedules')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
+      const row = payload.new || payload.old;
+      const oldEntry = allData[row.week_number] ? allData[row.week_number][row.cell_key] : null;
+      
+      if (!allData[row.week_number]) allData[row.week_number] = {};
+      
+      if (payload.eventType === 'DELETE') {
+        delete allData[row.week_number][row.cell_key];
+      } else {
+        allData[row.week_number][row.cell_key] = {
+          task: row.task,
+          due: row.due_date,
+          instructor: row.instructor
+        };
+
+        // Solo notificar si es una NUEVA tarea o si la tarea cambió y no fue hecha por el usuario actual
+        const isNewTask = !oldEntry && row.task;
+        const taskChanged = oldEntry && oldEntry.task !== row.task;
+        
+        if ((isNewTask || taskChanged) && row.task) {
+          sendNativeNotification(row);
+        }
+      }
+      
+      buildTable();
+    })
+    .subscribe();
+}
+
+async function saveToDB(key, entry) {
+  const isMilitar = key.startsWith('mil-');
+  // Asegurarnos de que si la fecha es un string vacío, se guarde como null
+  const formattedDate = (entry && entry.due && entry.due.trim() !== '') ? entry.due : null;
+
+  const { error } = await supabaseClient
+    .from('schedules')
+    .upsert({
+      week_number: currentWeek,
+      cell_key: key,
+      task: entry ? entry.task : null,
+      due_date: formattedDate,
+      instructor: entry ? entry.instructor : null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'week_number,cell_key' });
+
+  if (error) showToast('Error al guardar: ' + error.message);
+}
+
+async function deleteFromDB(key) {
+  const { error } = await supabaseClient
+    .from('schedules')
+    .delete()
+    .match({ week_number: currentWeek, cell_key: key });
+
+  if (error) showToast('Error al borrar: ' + error.message);
+}
+
+function sendNativeNotification(row) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  // Determinar el nombre de la materia o si es militar
+  let subject = row.cell_key.startsWith('mil-') ? "Fase Militar" : (MATS[row.cell_key] || "Materia");
+  
+  const title = `Nueva tarea en ${subject}`;
+  const options = {
+    body: `Que hay que hacer:\n${row.task}`,
+    icon: 'https://cdn-icons-png.flaticon.com/512/2098/2098402.png' // Icono de tarea
+  };
+
+  new Notification(title, options);
+}
+
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast update';
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
 function weekData(){ if(!allData[currentWeek]) allData[currentWeek]={}; return allData[currentWeek]; }
 function isExpired(due){ if(!due) return false; return new Date(due+'T23:59:59') < new Date(); }
 
@@ -451,16 +579,23 @@ document.getElementById('rm-cancel').onclick = () => document.getElementById('ov
 document.getElementById('overlay-reg').onclick = e => {
   if(e.target === document.getElementById('overlay-reg')) document.getElementById('overlay-reg').classList.remove('open');
 };
-document.getElementById('rm-save').onclick = () => {
+document.getElementById('rm-save').onclick = async () => {
   const task = document.getElementById('rm-task').value.trim();
   const due  = document.getElementById('rm-due').value;
   const wd   = weekData();
-  if(task) wd[regKey] = {task, due}; else delete wd[regKey];
-  save(); document.getElementById('overlay-reg').classList.remove('open'); buildTable();
+  const entry = task ? {task, due} : null;
+  
+  if(task) wd[regKey] = entry; else delete wd[regKey];
+  
+  await saveToDB(regKey, entry);
+  document.getElementById('overlay-reg').classList.remove('open'); 
+  buildTable();
 };
-document.getElementById('rm-clear').onclick = () => {
-  delete weekData()[regKey]; save();
-  document.getElementById('overlay-reg').classList.remove('open'); buildTable();
+document.getElementById('rm-clear').onclick = async () => {
+  delete weekData()[regKey]; 
+  await deleteFromDB(regKey);
+  document.getElementById('overlay-reg').classList.remove('open'); 
+  buildTable();
 };
 
 // ── MODAL FASE MILITAR ──────────────────────────────────────────
@@ -480,21 +615,28 @@ document.getElementById('mm-cancel').onclick = () => document.getElementById('ov
 document.getElementById('overlay-mil').onclick = e => {
   if(e.target === document.getElementById('overlay-mil')) document.getElementById('overlay-mil').classList.remove('open');
 };
-document.getElementById('mm-save').onclick = () => {
+document.getElementById('mm-save').onclick = async () => {
   const instructor = document.getElementById('mm-instructor').value.trim();
   const task       = document.getElementById('mm-task').value.trim();
   const due        = document.getElementById('mm-due').value;
   const wd         = weekData();
-  // Guardar si hay instructor O tarea; el instructor solo no "activa" tarea
-  if(instructor || task) wd[milKey] = {instructor, task, due}; else delete wd[milKey];
-  save(); document.getElementById('overlay-mil').classList.remove('open'); buildTable();
+  const entry      = (instructor || task) ? {instructor, task, due} : null;
+
+  if(entry) wd[milKey] = entry; else delete wd[milKey];
+  
+  await saveToDB(milKey, entry);
+  document.getElementById('overlay-mil').classList.remove('open'); 
+  buildTable();
 };
-document.getElementById('mm-clear').onclick = () => {
-  delete weekData()[milKey]; save();
-  document.getElementById('overlay-mil').classList.remove('open'); buildTable();
+document.getElementById('mm-clear').onclick = async () => {
+  delete weekData()[milKey]; 
+  await deleteFromDB(milKey);
+  document.getElementById('overlay-mil').classList.remove('open'); 
+  buildTable();
 };
 
 buildTable();
+initRealtime();
 </script>
 </body>
 </html>
