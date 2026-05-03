@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horario Escolar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g-bg:#d6f0c2;--g-br:#7bbf45;--g-tx:#2e6b10;
+  --y-bg:#fde9a0;--y-br:#e6a817;--y-tx:#7a4e00;
+  --b-bg:#c7e3f8;--b-br:#3a8fd4;--b-tx:#0b3d6b;
+  --r-bg:#f0ede8;--r-tx:#888078;
+  --sf:#ffffff;--sf2:#f7f5f2;--sf3:#eeebe6;
+  --bd:#dbd7d0;
+  --tx:#1a1816;--tx2:#6b6560;--tx3:#aaa49e;
+  --rad:10px;--rad-s:6px;
+}
+body{font-family:'DM Sans',sans-serif;background:#ece9e3;color:var(--tx);min-height:100vh;padding:20px 14px 48px}
+.page{max-width:1060px;margin:0 auto}
+
+/* Header */
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:24px;font-weight:600;letter-spacing:-.5px}
+header p{font-size:12.5px;color:var(--tx2);margin-top:3px}
+
+/* Week bar */
+.week-bar{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:12px 20px}
+.week-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--bd);background:var(--sf2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--tx);transition:background .12s;flex-shrink:0}
+.week-btn:hover{background:var(--sf3)}
+.week-info{text-align:center;min-width:180px}
+.week-num{font-size:20px;font-weight:600;color:var(--tx)}
+.week-dates{font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;margin-top:2px}
+
+/* Legend */
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--tx2)}
+.legend-dot{width:12px;height:12px;border-radius:3px;border:1.5px solid}
+
+/* Table */
+.table-wrap{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--bd);background:var(--sf);box-shadow:0 2px 14px rgba(0,0,0,.07)}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:640px}
+thead th{background:var(--sf2);font-size:11px;font-weight:600;color:var(--tx2);letter-spacing:.4px;text-transform:uppercase;padding:9px 6px;border-bottom:1px solid var(--bd);text-align:center}
+thead th:first-child{width:72px}
+/* Viernes header highlight */
+thead th.fri-head{background:#e8f2fb;color:#185fa5}
+
+.time-cell{background:var(--sf2);border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:5px 4px;text-align:center;vertical-align:middle;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.5;white-space:pre}
+.descanso-row td{background:var(--r-bg);text-align:center;padding:5px;font-size:10px;font-weight:600;letter-spacing:1.2px;color:var(--r-tx);text-transform:uppercase;border-bottom:1px solid var(--bd)}
+.gap-row td{background:var(--sf2);border-bottom:1px solid var(--bd);height:10px}
+
+.cell{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:7px 8px;vertical-align:top;cursor:pointer;transition:filter .12s,transform .1s;min-height:52px}
+.cell:last-child{border-right:none}
+.cell:hover{filter:brightness(.93);transform:scale(.997)}
+.cell:active{transform:scale(.993)}
+.cell.green{background:var(--g-bg)}
+.cell.yellow{background:var(--y-bg)}
+.cell.blue{background:var(--b-bg)}
+/* Viernes: toda la columna azul más oscura */
+.cell.blue-fri{background:#d4e9f7;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:7px 8px;vertical-align:top;cursor:pointer;transition:filter .12s,transform .1s;min-height:52px}
+.cell.blue-fri:last-child{border-right:none}
+.cell.blue-fri:hover{filter:brightness(.93)}
+
+.mat-name{font-size:12px;font-weight:600;line-height:1.3}
+.cell.green .mat-name{color:var(--g-tx)}
+.cell.yellow .mat-name{color:var(--y-tx)}
+.cell.blue .mat-name,.cell.blue-fri .mat-name{color:var(--b-tx)}
+
+.task-snippet{font-size:10.5px;margin-top:3px;line-height:1.3;color:var(--y-tx);opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.due-badge{display:inline-block;margin-top:3px;font-size:9.5px;background:rgba(255,255,255,.55);border-radius:3px;padding:1px 5px;color:var(--y-tx);font-family:'DM Mono',monospace}
+
+.mil-time{font-size:10px;color:var(--b-tx);opacity:.6;margin-top:1px;font-family:'DM Mono',monospace}
+.instructor-badge{font-size:10.5px;margin-top:3px;color:var(--b-tx);opacity:.8;font-style:italic}
+.task-snippet-blue{font-size:10.5px;margin-top:3px;color:var(--b-tx);opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.due-badge-blue{display:inline-block;margin-top:3px;font-size:9.5px;background:rgba(255,255,255,.55);border-radius:3px;padding:1px 5px;color:var(--b-tx);font-family:'DM Mono',monospace}
+
+/* Viernes: fila entera fase militar spanning todo el dia */
+.fri-full-row td.fri-header-cell{
+  background:#d4e9f7;
+  border-bottom:1px solid var(--bd);
+  padding:6px 8px;
+  font-size:11px;
+  font-weight:600;
+  color:#185fa5;
+  text-align:center;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+
+/* Tasks panel */
+.tasks-panel{margin-top:20px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.tasks-panel h2{font-size:15px;font-weight:600;margin-bottom:14px}
+.task-cards{display:flex;flex-direction:column;gap:9px}
+.task-card{border-radius:var(--rad-s);padding:11px 14px}
+.task-card.reg{background:var(--y-bg);border:1.5px solid var(--y-br)}
+.task-card.mil{background:var(--b-bg);border:1.5px solid var(--b-br)}
+.tc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.tc-mat{font-size:13px;font-weight:600}
+.task-card.reg .tc-mat{color:var(--y-tx)}
+.task-card.mil .tc-mat{color:var(--b-tx)}
+.tc-day{font-size:11px;font-family:'DM Mono',monospace}
+.task-card.reg .tc-day{color:#a06a00}
+.task-card.mil .tc-day{color:#185fa5}
+.tc-desc{font-size:12.5px;margin-top:5px;line-height:1.45}
+.task-card.reg .tc-desc{color:#5a3800}
+.task-card.mil .tc-desc{color:#0b3d6b}
+.tc-due{font-size:11px;margin-top:4px}
+.task-card.reg .tc-due{color:#a06a00}
+.task-card.mil .tc-due{color:#185fa5}
+.tc-instructor{font-size:11px;margin-top:3px;color:#185fa5;font-style:italic}
+.no-tasks{text-align:center;padding:20px;font-size:13px;color:var(--tx3)}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,24,22,.42);z-index:300;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--sf);border-radius:var(--rad);border:1px solid var(--bd);padding:24px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.15);animation:pop .16s ease}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-size:17px;font-weight:600}
+.modal .msub{font-size:11.5px;color:var(--tx2);margin-top:2px;margin-bottom:16px;font-family:'DM Mono',monospace}
+.modal label{font-size:12px;color:var(--tx2);display:block;margin-bottom:5px;font-weight:500;margin-top:12px}
+.modal label:first-of-type{margin-top:0}
+.modal input[type=text],.modal textarea,.modal input[type=date]{
+  width:100%;border:1.5px solid var(--bd);border-radius:var(--rad-s);padding:8px 11px;
+  font-size:13px;font-family:'DM Sans',sans-serif;color:var(--tx);background:var(--sf2);outline:none;transition:border-color .15s
+}
+.modal textarea{min-height:72px;resize:vertical}
+.modal input:focus,.modal textarea:focus{border-color:var(--g-br)}
+.modal input[type=text]:focus{border-color:#3a8fd4}
+.modal-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap}
+.btn{padding:8px 17px;border-radius:var(--rad-s);border:1.5px solid var(--bd);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--sf);color:var(--tx);transition:background .12s}
+.btn:hover{background:var(--sf2)}
+.btn.primary{background:#2e6b10;color:#d6f0c2;border-color:#2e6b10}
+.btn.primary:hover{background:#245a0d}
+.btn.primary-blue{background:#0b3d6b;color:#c7e3f8;border-color:#0b3d6b}
+.btn.primary-blue:hover{background:#09315a}
+.btn.danger{color:#8b1a1a;border-color:#f09595;background:transparent}
+.btn.danger:hover{background:#fff0f0}
+.divider{height:1px;background:var(--bd);margin:14px 0}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>Horario de Cañas</h1>
+</header>
+
+<div class="week-bar">
+  <button class="week-btn" id="prev-week">&#8592;</button>
+  <div class="week-info">
+    <div class="week-num" id="week-num"></div>
+    <div class="week-dates" id="week-dates"></div>
+  </div>
+  <button class="week-btn" id="next-week">&#8594;</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--g-bg);border-color:var(--g-br)"></div>Sin tarea</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--y-bg);border-color:var(--y-br)"></div>Con tarea</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--b-bg);border-color:var(--b-br)"></div>Fase Militar</div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr id="thead-row">
+        <th>Hora</th>
+        <th>Lunes</th>
+        <th>Martes</th>
+        <th>Miércoles</th>
+        <th>Jueves</th>
+        <th class="fri-head">Viernes</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="tasks-panel">
+  <h2>📌 Tareas — <span id="tasks-week-label"></span></h2>
+  <div id="tasks-list"></div>
+</div>
+
+</div>
+
+<!-- Modal materias normales -->
+<div class="overlay" id="overlay-reg">
+  <div class="modal">
+    <h3 id="rm-mat"></h3>
+    <div class="msub" id="rm-sub"></div>
+    <label>Que toca hacer</label>
+    <textarea id="rm-task" placeholder="Escribe aquí la tarea..."></textarea>
+    <label>Fecha de entrega</label>
+    <input type="date" id="rm-due">
+    <div class="modal-btns">
+      <button class="btn danger" id="rm-clear">Borrar</button>
+      <button class="btn" id="rm-cancel">Cancelar</button>
+      <button class="btn primary" id="rm-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Fase Militar -->
+<div class="overlay" id="overlay-mil">
+  <div class="modal">
+    <h3 style="color:var(--b-tx)">Fase </h3>
+    <div class="msub" id="mm-sub"></div>
+    <label>Primero con que toca</label>
+    <input type="text" id="mm-instructor" placeholder="Ortiz - Rojas - Mena">
+    <div class="divider"></div>
+    <label>Tarea</label>
+    <textarea id="mm-task" placeholder=""></textarea>
+    <label>Fecha de entrega</label>
+    <input type="date" id="mm-due">
+    <div class="modal-btns">
+      <button class="btn danger" id="mm-clear">Borrar todo</button>
+      <button class="btn" id="mm-cancel">Cancelar</button>
+      <button class="btn primary-blue" id="mm-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIGURACIÓN ──────────────────────────────────────────────
+// Semana 14 ancla en lunes 4 de mayo de 2026
+const ANCHOR_WEEK = 14;
+const ANCHOR_MON  = new Date(2026, 4, 4); // mes 4 = mayo (0-indexed)
+
+const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+
+// Bloques horarios (Lunes–Jueves); Viernes solo tiene Fase Militar
+const BLOCKS = [
+  {time:'7:00\n7:50',   type:'class', idx:0},
+  {time:'7:50\n8:40',   type:'class', idx:1},
+  {time:'8:40\n9:30',   type:'class', idx:2},
+  {type:'break', label:'D E S C A N S O  —  9:30 a 9:50'},
+  {time:'9:50\n10:40',  type:'class', idx:3},
+  {time:'10:40\n11:30', type:'class', idx:4},
+  {time:'11:30\n12:20', type:'class', idx:5},
+  {type:'break', label:'D E S C A N S O  —  12:20 a 12:50'},
+  {time:'12:50\n1:40',  type:'class', idx:6},
+  {time:'1:40\n2:30',   type:'class', idx:7},
+  {type:'gap'},
+  {time:'2:30\n4:00',   type:'militar'},
+];
+
+// Materias Lun–Jue (col 0-3); Viernes (col 4) = solo Fase Militar
+const MATS = {
+  '0-0':'Informática', '0-1':'Matemáticas', '0-2':'Física',    '0-3':'Filosofía',
+  '1-0':'Robótica',    '1-1':'Español',     '1-2':'Español',   '1-3':'Español',
+  '2-0':'Inglés',      '2-1':'Física',      '2-2':'Geometría', '2-3':'Inglés',
+  '3-0':'Política',    '3-1':'Ética',       '3-2':'Inglés',    '3-3':'Español',
+  '4-0':'Matemáticas', '4-1':'Ciencias',    '4-2':'Física',    '4-3':'Artística',
+  '5-0':'Inglés',      '5-1':'Inglés',      '5-2':'Sociales',  '5-3':'Matemáticas',
+  '6-0':'Química',     '6-1':'Química',     '6-2':'Filosofía', '6-3':'Estadística',
+  '7-0':'Edu. Física', '7-1':'Economía',    '7-2':'Química',   '7-3':'Religión',
+};
+
+// ── ESTADO ─────────────────────────────────────────────────────
+let currentWeek = ANCHOR_WEEK;
+let allData = {};
+try { const s = localStorage.getItem('horario_v5'); if(s) allData = JSON.parse(s); } catch(e){}
+function save(){ try{ localStorage.setItem('horario_v5', JSON.stringify(allData)); }catch(e){} }
+function weekData(){ if(!allData[currentWeek]) allData[currentWeek]={}; return allData[currentWeek]; }
+function isExpired(due){ if(!due) return false; return new Date(due+'T23:59:59') < new Date(); }
+
+// ── FECHAS ─────────────────────────────────────────────────────
+function getMonday(week){
+  const d = new Date(ANCHOR_MON);
+  d.setDate(d.getDate() + (week - ANCHOR_WEEK) * 7);
+  return d;
+}
+function getWeekDates(week){
+  const mon = getMonday(week);
+  const fri = new Date(mon); fri.setDate(mon.getDate()+4);
+  const fmt = d => d.toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+  return `${fmt(mon)} – ${fmt(fri)} de ${mon.getFullYear()}`;
+}
+function getDayDate(week, col){
+  // col 0=Lun … 4=Vie
+  const mon = getMonday(week);
+  const d = new Date(mon); d.setDate(mon.getDate()+col);
+  return d.toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+}
+
+// ── CONSTRUIR TABLA ─────────────────────────────────────────────
+function buildTable(){
+  document.getElementById('week-num').textContent   = `Semana ${currentWeek}`;
+  document.getElementById('week-dates').textContent = getWeekDates(currentWeek);
+  document.getElementById('tasks-week-label').textContent = `Semana ${currentWeek}`;
+
+  const wd    = weekData();
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  BLOCKS.forEach(block => {
+    const tr = document.createElement('tr');
+
+    // ── DESCANSO ──
+    if(block.type === 'break'){
+      tr.className = 'descanso-row';
+      const td = document.createElement('td'); td.colSpan = 6; td.textContent = block.label;
+      tr.appendChild(td); tbody.appendChild(tr); return;
+    }
+
+    // ── GAP ──
+    if(block.type === 'gap'){
+      tr.className = 'gap-row';
+      const td = document.createElement('td'); td.colSpan = 6;
+      tr.appendChild(td); tbody.appendChild(tr); return;
+    }
+
+    // ── CELDA HORA ──
+    const tc = document.createElement('td'); tc.className = 'time-cell'; tc.textContent = block.time;
+    tr.appendChild(tc);
+
+    // ── FASE MILITAR (fila completa Lun-Vie) ──
+    if(block.type === 'militar'){
+      // Lunes a Viernes (5 columnas)
+      for(let col = 0; col < 5; col++){
+        const k     = `mil-${col}`;
+        const entry = wd[k] || {};
+        // Solo la tarea (no el instructor) cuenta para el color
+        const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+        const isFri   = col === 4;
+
+        const td = document.createElement('td');
+        td.className = isFri ? 'cell blue-fri' : 'cell blue';
+
+        let html = `<div class="mat-name">Fase Militar</div>`;
+        if(entry.instructor) html += `<div class="instructor-badge">👤 ${entry.instructor}</div>`;
+        if(hasTask){
+          html += `<div class="task-snippet-blue">${entry.task}</div>`;
+          if(entry.due){
+            const d = new Date(entry.due+'T12:00');
+            html += `<div class="due-badge-blue">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
+          }
+        }
+        td.innerHTML = html;
+        td.onclick = () => openMilModal(k, DAYS[col]);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr); return;
+    }
+
+    // ── MATERIAS REGULARES (Lun–Jue, col 0-3) ──
+    for(let col = 0; col < 4; col++){
+      const k     = `${block.idx}-${col}`;
+      const mat   = MATS[k] || '';
+      const entry = wd[k] || {};
+      const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+
+      const td = document.createElement('td');
+      td.className = 'cell ' + (hasTask ? 'yellow' : 'green');
+      let html = `<div class="mat-name">${mat}</div>`;
+      if(hasTask){
+        html += `<div class="task-snippet">${entry.task}</div>`;
+        if(entry.due){
+          const d = new Date(entry.due+'T12:00');
+          html += `<div class="due-badge">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
+        }
+      }
+      td.innerHTML = html;
+      td.onclick = () => openRegModal(k, mat, DAYS[col], block.time.replace('\n',' – '));
+      tr.appendChild(td);
+    }
+
+    // ── VIERNES: celda azul (sin materia regular) ──
+    const friTd = document.createElement('td');
+    friTd.className = 'cell blue-fri';
+    friTd.style.verticalAlign = 'middle';
+    friTd.style.textAlign = 'center';
+    friTd.innerHTML = `<div class="mat-name" style="color:#185fa5;opacity:.35;font-size:11px;">—</div>`;
+    tr.appendChild(friTd);
+
+    tbody.appendChild(tr);
+  });
+
+  buildTaskList();
+}
+
+// ── PANEL DE TAREAS ─────────────────────────────────────────────
+function buildTaskList(){
+  const wd   = weekData();
+  const list = document.getElementById('tasks-list');
+  const items = [];
+
+  BLOCKS.forEach(block => {
+    if(block.type === 'class'){
+      for(let col = 0; col < 4; col++){
+        const k     = `${block.idx}-${col}`;
+        const entry = wd[k] || {};
+        if(entry.task && entry.task.trim() && !isExpired(entry.due))
+          items.push({type:'reg', mat:MATS[k], day:DAYS[col], time:block.time.replace('\n',' – '), task:entry.task, due:entry.due});
+      }
+    }
+    if(block.type === 'militar'){
+      for(let col = 0; col < 5; col++){
+        const k     = `mil-${col}`;
+        const entry = wd[k] || {};
+        // Instructor solo aparece si hay tarea; de lo contrario no sale en el panel
+        if(entry.task && entry.task.trim() && !isExpired(entry.due))
+          items.push({type:'mil', day:DAYS[col], task:entry.task, due:entry.due, instructor:entry.instructor||''});
+      }
+    }
+  });
+
+  if(!items.length){
+    list.innerHTML = '<div class="no-tasks">¡Sin tareas pendientes esta semana! 🎉</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="task-cards">' + items.map(i => {
+    if(i.type === 'reg'){
+      const dueStr = i.due
+        ? `<div class="tc-due">📅 ${new Date(i.due+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>`
+        : '';
+      return `<div class="task-card reg">
+        <div class="tc-header"><span class="tc-mat">${i.mat}</span><span class="tc-day">${i.day} · ${i.time}</span></div>
+        <div class="tc-desc">${i.task}</div>${dueStr}</div>`;
+    } else {
+      const instrStr = i.instructor ? `<div class="tc-instructor">👤 ${i.instructor}</div>` : '';
+      const dueStr   = i.due
+        ? `<div class="tc-due">📅 ${new Date(i.due+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>`
+        : '';
+      return `<div class="task-card mil">
+        <div class="tc-header"><span class="tc-mat">🪖 Fase Militar</span><span class="tc-day">${i.day} · 2:30 – 4:00</span></div>
+        ${instrStr}<div class="tc-desc">${i.task}</div>${dueStr}</div>`;
+    }
+  }).join('') + '</div>';
+}
+
+// ── NAVEGACIÓN SEMANAS ──────────────────────────────────────────
+document.getElementById('prev-week').onclick = () => { if(currentWeek > 1) currentWeek--; buildTable(); };
+document.getElementById('next-week').onclick = () => { currentWeek++; buildTable(); };
+
+// ── MODAL MATERIAS REGULARES ────────────────────────────────────
+let regKey = null;
+function openRegModal(k, mat, day, time){
+  regKey = k;
+  const entry = weekData()[k] || {};
+  document.getElementById('rm-mat').textContent = mat;
+  document.getElementById('rm-sub').textContent = `${day} · ${time} — Semana ${currentWeek} (${getDayDate(currentWeek, DAYS.indexOf(day))})`;
+  document.getElementById('rm-task').value = entry.task || '';
+  document.getElementById('rm-due').value  = entry.due  || '';
+  document.getElementById('overlay-reg').classList.add('open');
+  setTimeout(() => document.getElementById('rm-task').focus(), 80);
+}
+document.getElementById('rm-cancel').onclick = () => document.getElementById('overlay-reg').classList.remove('open');
+document.getElementById('overlay-reg').onclick = e => {
+  if(e.target === document.getElementById('overlay-reg')) document.getElementById('overlay-reg').classList.remove('open');
+};
+document.getElementById('rm-save').onclick = () => {
+  const task = document.getElementById('rm-task').value.trim();
+  const due  = document.getElementById('rm-due').value;
+  const wd   = weekData();
+  if(task) wd[regKey] = {task, due}; else delete wd[regKey];
+  save(); document.getElementById('overlay-reg').classList.remove('open'); buildTable();
+};
+document.getElementById('rm-clear').onclick = () => {
+  delete weekData()[regKey]; save();
+  document.getElementById('overlay-reg').classList.remove('open'); buildTable();
+};
+
+// ── MODAL FASE MILITAR ──────────────────────────────────────────
+let milKey = null;
+function openMilModal(k, day){
+  milKey = k;
+  const entry = weekData()[k] || {};
+  const colIdx = DAYS.indexOf(day);
+  document.getElementById('mm-sub').textContent = `${day} · 2:30 – 4:00 p.m. — Semana ${currentWeek} (${getDayDate(currentWeek, colIdx)})`;
+  document.getElementById('mm-instructor').value = entry.instructor || '';
+  document.getElementById('mm-task').value       = entry.task       || '';
+  document.getElementById('mm-due').value        = entry.due        || '';
+  document.getElementById('overlay-mil').classList.add('open');
+  setTimeout(() => document.getElementById('mm-instructor').focus(), 80);
+}
+document.getElementById('mm-cancel').onclick = () => document.getElementById('overlay-mil').classList.remove('open');
+document.getElementById('overlay-mil').onclick = e => {
+  if(e.target === document.getElementById('overlay-mil')) document.getElementById('overlay-mil').classList.remove('open');
+};
+document.getElementById('mm-save').onclick = () => {
+  const instructor = document.getElementById('mm-instructor').value.trim();
+  const task       = document.getElementById('mm-task').value.trim();
+  const due        = document.getElementById('mm-due').value;
+  const wd         = weekData();
+  // Guardar si hay instructor O tarea; el instructor solo no "activa" tarea
+  if(instructor || task) wd[milKey] = {instructor, task, due}; else delete wd[milKey];
+  save(); document.getElementById('overlay-mil').classList.remove('open'); buildTable();
+};
+document.getElementById('mm-clear').onclick = () => {
+  delete weekData()[milKey]; save();
+  document.getElementById('overlay-mil').classList.remove('open'); buildTable();
+};
+
+buildTable();
+</script>
+</body>
+</html>
