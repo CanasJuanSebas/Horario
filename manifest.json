@@ -7,7 +7,7 @@
   "theme_color": "#2e6b10",
   "icons": [
     {
-      "src": "https://imgur.com/a/2p3YWju",
+      "src": "colegio.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
