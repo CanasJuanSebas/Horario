@@ -372,9 +372,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const ANCHOR_WEEK = 14;
 const ANCHOR_MON  = new Date(2026, 4, 4); // mes 4 = mayo (0-indexed)
 
-function getCurrentWeek() {
-  const now = new Date();
-  const diff = now - ANCHOR_MON;
+function getWeekFromDate(date) {
+  // Ajustar la fecha a mediodía para evitar problemas de zona horaria
+  const d = new Date(date);
+  d.setHours(12,0,0,0);
+  const diff = d - ANCHOR_MON;
   const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
   return Math.max(1, ANCHOR_WEEK + weeks);
 }
@@ -410,7 +412,7 @@ const MATS = {
 };
 
 // ── ESTADO ─────────────────────────────────────────────────────
-let currentWeek = getCurrentWeek();
+let currentWeek = getWeekFromDate(new Date());
 let allData = {};
 
 // Carga inicial y Sincronización Real-time
@@ -496,7 +498,7 @@ async function initRealtime() {
     });
 }
 
-async function saveToDB(key, entry) {
+async function saveToDB(key, entry, week = currentWeek) {
   // Evitar que el propio usuario que guarda reciba su propia notificación
   sessionStorage.setItem('last_edit_key', key);
   sessionStorage.setItem('last_edit_task', entry ? entry.task : '');
@@ -508,7 +510,7 @@ async function saveToDB(key, entry) {
   const { error } = await supabaseClient
     .from('schedules')
     .upsert({
-      week_number: currentWeek,
+      week_number: week,
       cell_key: key,
       task: entry ? entry.task : null,
       due_date: formattedDate,
@@ -522,11 +524,11 @@ async function saveToDB(key, entry) {
   if (error) showToast('Error al guardar: ' + error.message);
 }
 
-async function deleteFromDB(key) {
+async function deleteFromDB(key, week = currentWeek) {
   const { error } = await supabaseClient
     .from('schedules')
     .delete()
-    .match({ week_number: currentWeek, cell_key: key });
+    .match({ week_number: week, cell_key: key });
 
   if (error) showToast('Error al borrar: ' + error.message);
 }
@@ -826,20 +828,56 @@ document.getElementById('overlay-postpone').onclick = e => {
   if(e.target === document.getElementById('overlay-postpone')) document.getElementById('overlay-postpone').classList.remove('open');
 };
 document.getElementById('postpone-save').onclick = async () => {
-  const newDue = document.getElementById('postpone-due').value;
+  const newDueStr = document.getElementById('postpone-due').value;
   const newTime = document.getElementById('postpone-time').value;
   const wd = weekData();
   
-  if(wd[postponeKey]) {
-    wd[postponeKey].status = 'aplazada';
-    wd[postponeKey].due = newDue;
-    // Podríamos añadir la hora a las notas o a la tarea si quisiéramos ser más específicos
-    if(!wd[postponeKey].notes) wd[postponeKey].notes = "";
-    wd[postponeKey].notes = `Aplazada para las ${newTime}. ` + wd[postponeKey].notes;
+  if(wd[postponeKey] && newDueStr) {
+    const entry = {...wd[postponeKey]}; // Copia de la tarea
+    const oldWeek = currentWeek;
+    const oldKey = postponeKey;
+
+    // Calcular nueva ubicación
+    const dateObj = new Date(newDueStr + 'T12:00:00');
+    const targetWeek = getWeekFromDate(dateObj);
+    const targetDayCol = (dateObj.getDay() + 6) % 7; // Convertir 0=Dom a 0=Lun, ..., 4=Vie
     
-    await saveToDB(postponeKey, wd[postponeKey]);
+    if(targetDayCol > 4) {
+      showToast("Solo puedes aplazar a días de clase (Lunes a Viernes)");
+      return;
+    }
+
+    // Buscar bloque horario
+    const targetBlock = BLOCKS.find(b => b.time && b.time.replace('\n', ' - ') === newTime);
+    if(!targetBlock) return;
+
+    let targetKey = "";
+    if(targetBlock.type === 'militar') {
+      targetKey = `mil-${targetDayCol}`;
+    } else {
+      targetKey = `${targetBlock.idx}-${targetDayCol}`;
+    }
+
+    // Actualizar datos de la tarea
+    entry.status = 'aplazada';
+    entry.due = newDueStr;
+    if(!entry.notes) entry.notes = "";
+    entry.notes = `Aplazada para las ${newTime}. ` + entry.notes;
+    
+    // 1. Borrar de la ubicación antigua
+    delete allData[oldWeek][oldKey];
+    await deleteFromDB(oldKey, oldWeek);
+
+    // 2. Guardar en la nueva ubicación
+    if(!allData[targetWeek]) allData[targetWeek] = {};
+    allData[targetWeek][targetKey] = entry;
+    await saveToDB(targetKey, entry, targetWeek);
+
     document.getElementById('overlay-postpone').classList.remove('open');
     buildTable();
+    showToast(`Tarea aplazada a la Semana ${targetWeek}, ${DAYS[targetDayCol]}`);
+  } else {
+    showToast("Selecciona una fecha válida");
   }
 };
 
