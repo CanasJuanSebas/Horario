@@ -316,6 +316,27 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
   </div>
 </div>
 
+<!-- Modal Aplazar Tarea -->
+<div class="overlay" id="overlay-postpone">
+  <div class="modal">
+    <h3>Aplazar Tarea</h3>
+    <div class="msub">Selecciona la nueva fecha y hora</div>
+    
+    <label>Nueva fecha</label>
+    <input type="date" id="postpone-due">
+    
+    <label>Bloque horario</label>
+    <select id="postpone-time" class="btn" style="width:100%; text-align:left; padding:8px 11px; background:var(--sf2)">
+      <!-- Se llena dinámicamente -->
+    </select>
+
+    <div class="modal-btns">
+      <button class="btn" id="postpone-cancel">Cancelar</button>
+      <button class="btn primary" id="postpone-save" style="background:var(--y-br); border-color:var(--y-br); color:var(--y-tx)">Confirmar Aplazamiento</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Fase Militar -->
 <div class="overlay" id="overlay-mil">
   <div class="modal">
@@ -762,6 +783,12 @@ async function updateTaskStatus(key, status) {
   const wd = weekData();
   if(!wd[key]) return;
   
+  // Si es aplazada, abrir modal especial
+  if(status === 'aplazada' && wd[key].status !== 'aplazada') {
+    openPostponeModal(key);
+    return;
+  }
+
   // Si se hace clic en el que ya está activo, volver a pendiente
   if(wd[key].status === status) {
     wd[key].status = 'pendiente';
@@ -772,6 +799,49 @@ async function updateTaskStatus(key, status) {
   await saveToDB(key, wd[key]);
   buildTable();
 }
+
+// ── MODAL APLAZAR ──────────────────────────────────────────────
+let postponeKey = null;
+function openPostponeModal(key) {
+  postponeKey = key;
+  const entry = weekData()[key] || {};
+  
+  // Llenar select de horas si está vacío
+  const select = document.getElementById('postpone-time');
+  if(select.options.length === 0) {
+    BLOCKS.filter(b => b.time).forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.time.replace('\n', ' - ');
+      opt.textContent = b.time.replace('\n', ' - ');
+      select.appendChild(opt);
+    });
+  }
+
+  document.getElementById('postpone-due').value = entry.due || '';
+  document.getElementById('overlay-postpone').classList.add('open');
+}
+
+document.getElementById('postpone-cancel').onclick = () => document.getElementById('overlay-postpone').classList.remove('open');
+document.getElementById('overlay-postpone').onclick = e => {
+  if(e.target === document.getElementById('overlay-postpone')) document.getElementById('overlay-postpone').classList.remove('open');
+};
+document.getElementById('postpone-save').onclick = async () => {
+  const newDue = document.getElementById('postpone-due').value;
+  const newTime = document.getElementById('postpone-time').value;
+  const wd = weekData();
+  
+  if(wd[postponeKey]) {
+    wd[postponeKey].status = 'aplazada';
+    wd[postponeKey].due = newDue;
+    // Podríamos añadir la hora a las notas o a la tarea si quisiéramos ser más específicos
+    if(!wd[postponeKey].notes) wd[postponeKey].notes = "";
+    wd[postponeKey].notes = `Aplazada para las ${newTime}. ` + wd[postponeKey].notes;
+    
+    await saveToDB(postponeKey, wd[postponeKey]);
+    document.getElementById('overlay-postpone').classList.remove('open');
+    buildTable();
+  }
+};
 
 // ── NAVEGACIÓN SEMANAS ──────────────────────────────────────────
 document.getElementById('prev-week').onclick = () => { if(currentWeek > 1) currentWeek--; buildTable(); };
