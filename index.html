@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Horario Escolar</title>
+<title>Horario 11ª</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2e6b10">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -28,13 +28,6 @@ body{font-family:'DM Sans',sans-serif;background:#ece9e3;color:var(--tx);min-hei
 header{text-align:center;margin-bottom:20px}
 header h1{font-size:24px;font-weight:600;letter-spacing:-.5px}
 header p{font-size:12.5px;color:var(--tx2);margin-top:3px}
-
-/* General Tasks */
-.gen-tasks{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:20px}
-.gen-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:12px 15px;box-shadow:0 2px 8px rgba(0,0,0,.04);cursor:pointer}
-.gen-card h3{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;color:var(--tx2)}
-.gen-content{font-size:12px;color:var(--tx);line-height:1.4;white-space:pre-wrap}
-.gen-content:empty::before{content:"Sin tareas...";color:var(--tx3);font-style:italic}
 
 /* Week bar */
 .week-bar{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:12px 20px}
@@ -153,6 +146,26 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 
 .no-tasks{text-align:center;padding:20px;font-size:13px;color:var(--tx3)}
 
+/* Extra Tasks Dropdown */
+.extra-tasks-container{margin-top:20px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.extra-header{padding:14px 20px;background:var(--sf2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .12s}
+.extra-header:hover{background:var(--sf3)}
+.extra-header h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.extra-arrow{transition:transform .2s}
+.extra-tasks-container.open .extra-arrow{transform:rotate(180deg)}
+.extra-content{display:none;padding:16px 20px}
+.extra-tasks-container.open .extra-content{display:block}
+.extra-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--bd);gap:12px}
+.extra-item:last-child{border-bottom:none}
+.extra-info{flex:1}
+.extra-name{font-size:13px;font-weight:600;color:var(--tx)}
+.extra-desc{font-size:12px;color:var(--tx2);margin-top:2px}
+.extra-item-btns{display:flex;gap:6px}
+.btn-icon{width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:var(--sf);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s}
+.btn-icon:hover{background:var(--sf2);border-color:var(--tx3)}
+.add-extra-btn{width:100%;margin-top:12px;padding:10px;border:1.5px dashed var(--bd);border-radius:var(--rad-s);background:transparent;color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.add-extra-btn:hover{background:var(--sf2);border-color:var(--tx3);color:var(--tx)}
+
 /* Modal */
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,24,22,.42);z-index:300;align-items:center;justify-content:center;padding:16px}
 .overlay.open{display:flex}
@@ -193,7 +206,7 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 <div class="page">
 
 <header>
-  <h1>Horario de Cañas <span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
+  <h1>Horario de Cañas y Anny<span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
 </header>
 
 <div class="week-bar">
@@ -213,33 +226,6 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
   <div class="legend-item"><div class="legend-dot" style="background:var(--b-bg);border-color:var(--b-br)"></div>Fase Militar</div>
 </div>
 
-<div class="gen-tasks">
-  <div class="gen-card" onclick="openGenModal('gen-week', 'Tareas Generales de la Semana')">
-    <h3>📌 Semanal</h3>
-    <div class="gen-content" id="gen-week-content"></div>
-  </div>
-  <div class="gen-card" onclick="openGenModal('gen-day-0', 'Tareas del Lunes')">
-    <h3>📅 Lunes</h3>
-    <div class="gen-content" id="gen-day-0-content"></div>
-  </div>
-  <div class="gen-card" onclick="openGenModal('gen-day-1', 'Tareas del Martes')">
-    <h3>📅 Martes</h3>
-    <div class="gen-content" id="gen-day-1-content"></div>
-  </div>
-  <div class="gen-card" onclick="openGenModal('gen-day-2', 'Tareas del Miércoles')">
-    <h3>📅 Miércoles</h3>
-    <div class="gen-content" id="gen-day-2-content"></div>
-  </div>
-  <div class="gen-card" onclick="openGenModal('gen-day-3', 'Tareas del Jueves')">
-    <h3>📅 Jueves</h3>
-    <div class="gen-content" id="gen-day-3-content"></div>
-  </div>
-  <div class="gen-card" onclick="openGenModal('gen-day-4', 'Tareas del Viernes')">
-    <h3>📅 Viernes</h3>
-    <div class="gen-content" id="gen-day-4-content"></div>
-  </div>
-</div>
-
 <div class="table-wrap">
   <table>
     <thead>
@@ -254,6 +240,19 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
     </thead>
     <tbody id="tbody"></tbody>
   </table>
+</div>
+
+<div class="extra-tasks-container" id="extra-tasks-container">
+  <div class="extra-header" onclick="toggleExtraTasks()">
+    <h2>� Tareas Extra (Fuera de Horario)</h2>
+    <span class="extra-arrow">▼</span>
+  </div>
+  <div class="extra-content">
+    <div id="extra-tasks-list">
+      <!-- Se llena dinámicamente -->
+    </div>
+    <button class="add-extra-btn" onclick="openExtraModal()">+ Añadir tarea extra</button>
+  </div>
 </div>
 
 <div class="tasks-panel">
@@ -302,16 +301,25 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
   </div>
 </div>
 
-<!-- Modal Tareas Generales -->
-<div class="overlay" id="overlay-gen">
+<!-- Modal Tareas Extra -->
+<div class="overlay" id="overlay-extra">
   <div class="modal">
-    <h3 id="gen-title"></h3>
-    <div class="msub">Semana <span id="gen-week-num"></span></div>
-    <label>Contenido</label>
-    <textarea id="gen-input" style="min-height:150px" placeholder="Escribe las tareas aquí..."></textarea>
+    <h3>Tarea Extra</h3>
+    <div class="msub">Tarea fuera del horario regular</div>
+    
+    <label>Título / Materia</label>
+    <input type="text" id="extra-name" placeholder="Ej: Proyecto de Feria, Trámite...">
+    
+    <label>Descripción</label>
+    <textarea id="extra-task" placeholder="Detalles de la tarea..."></textarea>
+    
+    <label>Fecha límite (opcional)</label>
+    <input type="date" id="extra-due">
+
     <div class="modal-btns">
-      <button class="btn" id="gen-cancel">Cancelar</button>
-      <button class="btn primary" id="gen-save">Guardar</button>
+      <button class="btn danger" id="extra-clear" style="display:none">Borrar</button>
+      <button class="btn" id="extra-cancel">Cancelar</button>
+      <button class="btn primary" id="extra-save">Guardar</button>
     </div>
   </div>
 </div>
@@ -604,12 +612,7 @@ function buildTable(){
 
   const wd    = weekData();
   
-  // Actualizar tareas generales
-  ['week', 'day-0', 'day-1', 'day-2', 'day-3', 'day-4'].forEach(id => {
-    const k = `gen-${id}`;
-    const el = document.getElementById(`${k}-content`);
-    if(el) el.textContent = (wd[k] && wd[k].task) ? wd[k].task : '';
-  });
+  buildExtraTasksList();
 
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
@@ -970,33 +973,79 @@ document.getElementById('rm-clear').onclick = async () => {
   buildTable();
 };
 
-// ── MODAL TAREAS GENERALES ──────────────────────────────────────
-let genKey = null;
-function openGenModal(k, title) {
-  genKey = k;
-  const entry = weekData()[k] || {};
-  document.getElementById('gen-title').textContent = title;
-  document.getElementById('gen-week-num').textContent = currentWeek;
-  document.getElementById('gen-input').value = entry.task || '';
-  document.getElementById('overlay-gen').classList.add('open');
-  setTimeout(() => document.getElementById('gen-input').focus(), 80);
+// ── TAREAS EXTRA ───────────────────────────────────────────────
+function toggleExtraTasks() {
+  document.getElementById('extra-tasks-container').classList.toggle('open');
 }
 
-document.getElementById('gen-cancel').onclick = () => document.getElementById('overlay-gen').classList.remove('open');
-document.getElementById('overlay-gen').onclick = e => {
-  if(e.target === document.getElementById('overlay-gen')) document.getElementById('overlay-gen').classList.remove('open');
+function buildExtraTasksList() {
+  const wd = weekData();
+  const list = document.getElementById('extra-tasks-list');
+  const extras = Object.keys(wd)
+    .filter(k => k.startsWith('extra-'))
+    .map(k => ({ key: k, ...wd[k] }));
+
+  if (extras.length === 0) {
+    list.innerHTML = '<div class="no-tasks" style="padding:10px">No hay tareas extra para esta semana.</div>';
+    return;
+  }
+
+  list.innerHTML = extras.map(e => `
+    <div class="extra-item">
+      <div class="extra-info">
+        <div class="extra-name">${e.instructor || 'Tarea Extra'}</div>
+        <div class="extra-desc">${e.task} ${e.due ? `<span style="opacity:0.6; margin-left:8px">📅 ${e.due}</span>` : ''}</div>
+      </div>
+      <div class="extra-item-btns">
+        <button class="btn-icon" onclick="openExtraModal('${e.key}')">✏️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+let currentExtraKey = null;
+function openExtraModal(key = null) {
+  currentExtraKey = key;
+  const entry = key ? weekData()[key] : null;
+  
+  document.getElementById('extra-name').value = entry ? (entry.instructor || '') : '';
+  document.getElementById('extra-task').value = entry ? (entry.task || '') : '';
+  document.getElementById('extra-due').value = entry ? (entry.due || '') : '';
+  
+  document.getElementById('extra-clear').style.display = key ? 'block' : 'none';
+  document.getElementById('overlay-extra').classList.add('open');
+}
+
+document.getElementById('extra-cancel').onclick = () => document.getElementById('overlay-extra').classList.remove('open');
+document.getElementById('overlay-extra').onclick = e => {
+  if(e.target === document.getElementById('overlay-extra')) document.getElementById('overlay-extra').classList.remove('open');
+};
+document.getElementById('extra-save').onclick = async () => {
+  const name = document.getElementById('extra-name').value.trim();
+  const task = document.getElementById('extra-task').value.trim();
+  const due = document.getElementById('extra-due').value;
+  
+  if (!task) {
+    showToast("La descripción es obligatoria");
+    return;
+  }
+
+  const key = currentExtraKey || `extra-${Date.now()}`;
+  const entry = { instructor: name, task, due, type: 'extra', status: 'pendiente' };
+  
+  weekData()[key] = entry;
+  await saveToDB(key, entry);
+  document.getElementById('overlay-extra').classList.remove('open');
+  buildTable();
 };
 
-document.getElementById('gen-save').onclick = async () => {
-  const task = document.getElementById('gen-input').value.trim();
-  const wd = weekData();
-  const entry = task ? {task, type: 'general'} : null;
-  
-  if(task) wd[genKey] = entry; else delete wd[genKey];
-  
-  await saveToDB(genKey, entry);
-  document.getElementById('overlay-gen').classList.remove('open');
-  buildTable();
+document.getElementById('extra-clear').onclick = async () => {
+  if (currentExtraKey) {
+    delete weekData()[currentExtraKey];
+    await deleteFromDB(currentExtraKey);
+    document.getElementById('overlay-extra').classList.remove('open');
+    buildTable();
+  }
 };
 
 // ── MODAL FASE MILITAR ──────────────────────────────────────────
