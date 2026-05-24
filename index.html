@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Horario de Anny y Canas</title>
+<title>Horario Escolar</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2e6b10">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,7 +13,9 @@
   --g-bg:#d6f0c2;--g-br:#7bbf45;--g-tx:#2e6b10;
   --y-bg:#fde9a0;--y-br:#e6a817;--y-tx:#7a4e00;
   --b-bg:#c7e3f8;--b-br:#3a8fd4;--b-tx:#0b3d6b;
-  --r-bg:#f0ede8;--r-tx:#888078;
+  --r-bg:#f8d7da;--r-br:#f5c6cb;--r-tx:#721c24;
+  --e-bg:#b8d1f3;--e-br:#4a90e2;--e-tx:#003366;
+  --f-bg:#f0ede8;--f-tx:#888078;
   --sf:#ffffff;--sf2:#f7f5f2;--sf3:#eeebe6;
   --bd:#dbd7d0;
   --tx:#1a1816;--tx2:#6b6560;--tx3:#aaa49e;
@@ -26,6 +28,13 @@ body{font-family:'DM Sans',sans-serif;background:#ece9e3;color:var(--tx);min-hei
 header{text-align:center;margin-bottom:20px}
 header h1{font-size:24px;font-weight:600;letter-spacing:-.5px}
 header p{font-size:12.5px;color:var(--tx2);margin-top:3px}
+
+/* General Tasks */
+.gen-tasks{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:20px}
+.gen-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:12px 15px;box-shadow:0 2px 8px rgba(0,0,0,.04);cursor:pointer}
+.gen-card h3{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;color:var(--tx2)}
+.gen-content{font-size:12px;color:var(--tx);line-height:1.4;white-space:pre-wrap}
+.gen-content:empty::before{content:"Sin tareas...";color:var(--tx3);font-style:italic}
 
 /* Week bar */
 .week-bar{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:12px 20px}
@@ -58,19 +67,28 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 .cell:active{transform:scale(.993)}
 .cell.green{background:var(--g-bg)}
 .cell.yellow{background:var(--y-bg)}
+.cell.red{background:var(--r-bg)}
+.cell.blue-exam{background:var(--e-bg)}
 .cell.blue{background:var(--b-bg)}
-/* Viernes: toda la columna azul más oscura */
-.cell.blue-fri{background:#d4e9f7;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:7px 8px;vertical-align:top;cursor:pointer;transition:filter .12s,transform .1s;min-height:52px}
-.cell.blue-fri:last-child{border-right:none}
-.cell.blue-fri:hover{filter:brightness(.93)}
 
 .mat-name{font-size:12px;font-weight:600;line-height:1.3}
 .cell.green .mat-name{color:var(--g-tx)}
 .cell.yellow .mat-name{color:var(--y-tx)}
+.cell.red .mat-name{color:var(--r-tx)}
+.cell.blue-exam .mat-name{color:var(--e-tx)}
 .cell.blue .mat-name,.cell.blue-fri .mat-name{color:var(--b-tx)}
 
-.task-snippet{font-size:10.5px;margin-top:3px;line-height:1.3;color:var(--y-tx);opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.due-badge{display:inline-block;margin-top:3px;font-size:9.5px;background:rgba(255,255,255,.55);border-radius:3px;padding:1px 5px;color:var(--y-tx);font-family:'DM Mono',monospace}
+.task-snippet{font-size:10.5px;margin-top:3px;line-height:1.3;opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cell.yellow .task-snippet{color:var(--y-tx)}
+.cell.red .task-snippet{color:var(--r-tx)}
+.cell.blue-exam .task-snippet{color:var(--e-tx)}
+
+.due-badge{display:inline-block;margin-top:3px;font-size:9.5px;background:rgba(255,255,255,.55);border-radius:3px;padding:1px 5px;font-family:'DM Mono',monospace}
+.cell.yellow .due-badge{color:var(--y-tx)}
+.cell.red .due-badge{color:var(--r-tx)}
+.cell.blue-exam .due-badge{color:var(--e-tx)}
+
+.notes-snippet{font-size:10px;margin-top:4px;color:var(--tx2);font-style:italic;border-top:1px solid rgba(0,0,0,0.05);padding-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
 
 .mil-time{font-size:10px;color:var(--b-tx);opacity:.6;margin-top:1px;font-family:'DM Mono',monospace}
 .instructor-badge{font-size:10.5px;margin-top:3px;color:var(--b-tx);opacity:.8;font-style:italic}
@@ -96,21 +114,43 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 .task-cards{display:flex;flex-direction:column;gap:9px}
 .task-card{border-radius:var(--rad-s);padding:11px 14px}
 .task-card.reg{background:var(--y-bg);border:1.5px solid var(--y-br)}
+.task-card.reg-red{background:var(--r-bg);border:1.5px solid var(--r-br)}
+.task-card.reg-blue{background:var(--e-bg);border:1.5px solid var(--e-br)}
 .task-card.mil{background:var(--b-bg);border:1.5px solid var(--b-br)}
 .tc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
 .tc-mat{font-size:13px;font-weight:600}
 .task-card.reg .tc-mat{color:var(--y-tx)}
+.task-card.reg-red .tc-mat{color:var(--r-tx)}
+.task-card.reg-blue .tc-mat{color:var(--e-tx)}
 .task-card.mil .tc-mat{color:var(--b-tx)}
 .tc-day{font-size:11px;font-family:'DM Mono',monospace}
 .task-card.reg .tc-day{color:#a06a00}
+.task-card.reg-red .tc-day{color:var(--r-tx)}
+.task-card.reg-blue .tc-day{color:var(--e-tx)}
 .task-card.mil .tc-day{color:#185fa5}
 .tc-desc{font-size:12.5px;margin-top:5px;line-height:1.45}
 .task-card.reg .tc-desc{color:#5a3800}
+.task-card.reg-red .tc-desc{color:var(--r-tx)}
+.task-card.reg-blue .tc-desc{color:var(--e-tx)}
 .task-card.mil .tc-desc{color:#0b3d6b}
 .tc-due{font-size:11px;margin-top:4px}
 .task-card.reg .tc-due{color:#a06a00}
+.task-card.reg-red .tc-due{color:var(--r-tx)}
+.task-card.reg-blue .tc-due{color:var(--e-tx)}
 .task-card.mil .tc-due{color:#185fa5}
 .tc-instructor{font-size:11px;margin-top:3px;color:#185fa5;font-style:italic}
+
+/* Status Buttons */
+.tc-actions{display:flex;gap:6px;margin-top:10px;border-top:1px solid rgba(0,0,0,0.05);padding-top:10px}
+.btn-status{flex:1;padding:5px;font-size:10px;font-weight:600;border-radius:4px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.btn-status:hover{filter:brightness(.95)}
+.btn-status.active-delivered{background:#2e6b10;color:#fff;border-color:#2e6b10}
+.btn-status.active-missing{background:#8b1a1a;color:#fff;border-color:#8b1a1a}
+.btn-status.active-postponed{background:#e6a817;color:#fff;border-color:#e6a817}
+
+.task-card.status-delivered{opacity:0.6;filter:grayscale(0.5)}
+.task-card.status-delivered .tc-desc{text-decoration:line-through}
+
 .no-tasks{text-align:center;padding:20px;font-size:13px;color:var(--tx3)}
 
 /* Modal */
@@ -153,7 +193,7 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 <div class="page">
 
 <header>
-  <h1>Horario de Cañas y Anny<span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
+  <h1>Horario de Cañas <span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
 </header>
 
 <div class="week-bar">
@@ -167,8 +207,37 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
 
 <div class="legend">
   <div class="legend-item"><div class="legend-dot" style="background:var(--g-bg);border-color:var(--g-br)"></div>Sin tarea</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--y-bg);border-color:var(--y-br)"></div>Con tarea</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--y-bg);border-color:var(--y-br)"></div>Tarea</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--r-bg);border-color:var(--r-br)"></div>Reclamo</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--e-bg);border-color:var(--e-br)"></div>Examen</div>
   <div class="legend-item"><div class="legend-dot" style="background:var(--b-bg);border-color:var(--b-br)"></div>Fase Militar</div>
+</div>
+
+<div class="gen-tasks">
+  <div class="gen-card" onclick="openGenModal('gen-week', 'Tareas Generales de la Semana')">
+    <h3>📌 Semanal</h3>
+    <div class="gen-content" id="gen-week-content"></div>
+  </div>
+  <div class="gen-card" onclick="openGenModal('gen-day-0', 'Tareas del Lunes')">
+    <h3>📅 Lunes</h3>
+    <div class="gen-content" id="gen-day-0-content"></div>
+  </div>
+  <div class="gen-card" onclick="openGenModal('gen-day-1', 'Tareas del Martes')">
+    <h3>📅 Martes</h3>
+    <div class="gen-content" id="gen-day-1-content"></div>
+  </div>
+  <div class="gen-card" onclick="openGenModal('gen-day-2', 'Tareas del Miércoles')">
+    <h3>📅 Miércoles</h3>
+    <div class="gen-content" id="gen-day-2-content"></div>
+  </div>
+  <div class="gen-card" onclick="openGenModal('gen-day-3', 'Tareas del Jueves')">
+    <h3>📅 Jueves</h3>
+    <div class="gen-content" id="gen-day-3-content"></div>
+  </div>
+  <div class="gen-card" onclick="openGenModal('gen-day-4', 'Tareas del Viernes')">
+    <h3>📅 Viernes</h3>
+    <div class="gen-content" id="gen-day-4-content"></div>
+  </div>
 </div>
 
 <div class="table-wrap">
@@ -199,14 +268,50 @@ thead th.fri-head{background:#e8f2fb;color:#185fa5}
   <div class="modal">
     <h3 id="rm-mat"></h3>
     <div class="msub" id="rm-sub"></div>
-    <label>Que toca hacer</label>
-    <textarea id="rm-task" placeholder="Escribe aquí la tarea..."></textarea>
-    <label>Fecha de entrega</label>
-    <input type="date" id="rm-due">
+    
+    <div id="reg-flow-type">
+      <label>¿Qué vas a hacer?</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn" style="flex:1;border-color:var(--y-br);color:var(--y-tx)" onclick="setRegType('tarea')">Tarea</button>
+        <button class="btn" style="flex:1;border-color:var(--r-br);color:var(--r-tx)" onclick="setRegType('reclamo')">Reclamo</button>
+        <button class="btn" style="flex:1;border-color:var(--e-br);color:var(--e-tx)" onclick="setRegType('examen')">Examen</button>
+      </div>
+      <button class="btn" style="width:100%" onclick="showRegDetails()">Solo ver/editar notas</button>
+    </div>
+
+    <div id="reg-details" style="display:none">
+      <div id="reg-type-badge" style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-bottom:10px;text-transform:uppercase"></div>
+      
+      <label id="label-desc">Descripción</label>
+      <textarea id="rm-task" placeholder="Escribe aquí los detalles..."></textarea>
+      
+      <label>Fecha de entrega</label>
+      <input type="date" id="rm-due">
+
+      <div class="divider"></div>
+      
+      <label>Notas generales (no cambian el color)</label>
+      <textarea id="rm-notes" placeholder="Notas, recordatorios, etc..."></textarea>
+
+      <div class="modal-btns">
+        <button class="btn danger" id="rm-clear">Borrar todo</button>
+        <button class="btn" id="rm-cancel">Cancelar</button>
+        <button class="btn primary" id="rm-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tareas Generales -->
+<div class="overlay" id="overlay-gen">
+  <div class="modal">
+    <h3 id="gen-title"></h3>
+    <div class="msub">Semana <span id="gen-week-num"></span></div>
+    <label>Contenido</label>
+    <textarea id="gen-input" style="min-height:150px" placeholder="Escribe las tareas aquí..."></textarea>
     <div class="modal-btns">
-      <button class="btn danger" id="rm-clear">Borrar</button>
-      <button class="btn" id="rm-cancel">Cancelar</button>
-      <button class="btn primary" id="rm-save">Guardar</button>
+      <button class="btn" id="gen-cancel">Cancelar</button>
+      <button class="btn primary" id="gen-save">Guardar</button>
     </div>
   </div>
 </div>
@@ -246,6 +351,13 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const ANCHOR_WEEK = 14;
 const ANCHOR_MON  = new Date(2026, 4, 4); // mes 4 = mayo (0-indexed)
 
+function getCurrentWeek() {
+  const now = new Date();
+  const diff = now - ANCHOR_MON;
+  const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+  return Math.max(1, ANCHOR_WEEK + weeks);
+}
+
 const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
 
 // Bloques horarios (Lunes–Jueves); Viernes solo tiene Fase Militar
@@ -277,7 +389,7 @@ const MATS = {
 };
 
 // ── ESTADO ─────────────────────────────────────────────────────
-let currentWeek = ANCHOR_WEEK;
+let currentWeek = getCurrentWeek();
 let allData = {};
 
 // Carga inicial y Sincronización Real-time
@@ -309,7 +421,10 @@ async function initRealtime() {
       allData[row.week_number][row.cell_key] = {
         task: row.task,
         due: row.due_date,
-        instructor: row.instructor
+        instructor: row.instructor,
+        type: row.type || 'tarea',
+        notes: row.notes || '',
+        status: row.status || 'pendiente'
       };
     });
     statusDot.classList.add('online');
@@ -332,7 +447,10 @@ async function initRealtime() {
         allData[row.week_number][row.cell_key] = {
           task: row.task,
           due: row.due_date,
-          instructor: row.instructor
+          instructor: row.instructor,
+          type: row.type || 'tarea',
+          notes: row.notes || '',
+          status: row.status || 'pendiente'
         };
 
         // Solo notificar si es una NUEVA tarea o si la tarea cambió
@@ -374,6 +492,9 @@ async function saveToDB(key, entry) {
       task: entry ? entry.task : null,
       due_date: formattedDate,
       instructor: entry ? entry.instructor : null,
+      type: entry ? entry.type : null,
+      notes: entry ? entry.notes : null,
+      status: entry ? entry.status : 'pendiente',
       updated_at: new Date().toISOString()
     }, { onConflict: 'week_number,cell_key' });
 
@@ -459,6 +580,14 @@ function buildTable(){
   document.getElementById('tasks-week-label').textContent = `Semana ${currentWeek}`;
 
   const wd    = weekData();
+  
+  // Actualizar tareas generales
+  ['week', 'day-0', 'day-1', 'day-2', 'day-3', 'day-4'].forEach(id => {
+    const k = `gen-${id}`;
+    const el = document.getElementById(`${k}-content`);
+    if(el) el.textContent = (wd[k] && wd[k].task) ? wd[k].task : '';
+  });
+
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
 
@@ -491,15 +620,18 @@ function buildTable(){
         const entry = wd[k] || {};
         // Solo la tarea (no el instructor) cuenta para el color
         const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+        const isDelivered = entry.status === 'entregada';
         const isFri   = col === 4;
 
         const td = document.createElement('td');
         td.className = isFri ? 'cell blue-fri' : 'cell blue';
+        if(isDelivered) td.style.opacity = '0.7';
 
         let html = `<div class="mat-name">Fase Militar</div>`;
         if(entry.instructor) html += `<div class="instructor-badge">👤 ${entry.instructor}</div>`;
         if(hasTask){
-          html += `<div class="task-snippet-blue">${entry.task}</div>`;
+          const taskStyle = isDelivered ? 'text-decoration:line-through; opacity:0.6' : '';
+          html += `<div class="task-snippet-blue" style="${taskStyle}">${entry.task}</div>`;
           if(entry.due){
             const d = new Date(entry.due+'T12:00');
             html += `<div class="due-badge-blue">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
@@ -518,16 +650,31 @@ function buildTable(){
       const mat   = MATS[k] || '';
       const entry = wd[k] || {};
       const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+      const isDelivered = entry.status === 'entregada';
+      
+      let colorClass = 'green';
+      if(hasTask) {
+        if(isDelivered) colorClass = 'green'; // Si está entregada, vuelve a verde (sin tarea pendiente)
+        else if(entry.type === 'reclamo') colorClass = 'red';
+        else if(entry.type === 'examen') colorClass = 'blue-exam';
+        else colorClass = 'yellow';
+      }
 
       const td = document.createElement('td');
-      td.className = 'cell ' + (hasTask ? 'yellow' : 'green');
+      td.className = 'cell ' + colorClass;
+      if(isDelivered) td.style.opacity = '0.7';
+
       let html = `<div class="mat-name">${mat}</div>`;
       if(hasTask){
-        html += `<div class="task-snippet">${entry.task}</div>`;
+        const taskStyle = isDelivered ? 'text-decoration:line-through; opacity:0.6' : '';
+        html += `<div class="task-snippet" style="${taskStyle}">${entry.task}</div>`;
         if(entry.due){
           const d = new Date(entry.due+'T12:00');
           html += `<div class="due-badge">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
         }
+      }
+      if(entry.notes && entry.notes.trim()){
+        html += `<div class="notes-snippet">📝 ${entry.notes}</div>`;
       }
       td.innerHTML = html;
       td.onclick = () => openRegModal(k, mat, DAYS[col], block.time.replace('\n',' – '));
@@ -560,7 +707,7 @@ function buildTaskList(){
         const k     = `${block.idx}-${col}`;
         const entry = wd[k] || {};
         if(entry.task && entry.task.trim() && !isExpired(entry.due))
-          items.push({type:'reg', mat:MATS[k], day:DAYS[col], time:block.time.replace('\n',' – '), task:entry.task, due:entry.due});
+          items.push({key: k, type:'reg', mat:MATS[k], day:DAYS[col], time:block.time.replace('\n',' – '), task:entry.task, due:entry.due, taskType:entry.type, status: entry.status || 'pendiente'});
       }
     }
     if(block.type === 'militar'){
@@ -569,7 +716,7 @@ function buildTaskList(){
         const entry = wd[k] || {};
         // Instructor solo aparece si hay tarea; de lo contrario no sale en el panel
         if(entry.task && entry.task.trim() && !isExpired(entry.due))
-          items.push({type:'mil', day:DAYS[col], task:entry.task, due:entry.due, instructor:entry.instructor||''});
+          items.push({key: k, type:'mil', day:DAYS[col], task:entry.task, due:entry.due, instructor:entry.instructor||'', status: entry.status || 'pendiente'});
       }
     }
   });
@@ -580,23 +727,50 @@ function buildTaskList(){
   }
 
   list.innerHTML = '<div class="task-cards">' + items.map(i => {
+    const status = i.status || 'pendiente';
+    const cardClassBase = i.type === 'reg' ? (i.taskType === 'reclamo' ? 'reg-red' : (i.taskType === 'examen' ? 'reg-blue' : 'reg')) : 'mil';
+    const statusClass = status === 'entregada' ? 'status-delivered' : '';
+
+    const dueStr = i.due
+      ? `<div class="tc-due">📅 ${new Date(i.due+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>`
+      : '';
+    
+    let headerHtml = '';
     if(i.type === 'reg'){
-      const dueStr = i.due
-        ? `<div class="tc-due">📅 ${new Date(i.due+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>`
-        : '';
-      return `<div class="task-card reg">
-        <div class="tc-header"><span class="tc-mat">${i.mat}</span><span class="tc-day">${i.day} · ${i.time}</span></div>
-        <div class="tc-desc">${i.task}</div>${dueStr}</div>`;
+      const typeLabel = i.taskType ? `<span style="text-transform:uppercase; font-size:10px; font-weight:bold; margin-right:5px">[${i.taskType}]</span>` : '';
+      headerHtml = `<div class="tc-header"><span class="tc-mat">${typeLabel}${i.mat}</span><span class="tc-day">${i.day} · ${i.time}</span></div>`;
     } else {
       const instrStr = i.instructor ? `<div class="tc-instructor">👤 ${i.instructor}</div>` : '';
-      const dueStr   = i.due
-        ? `<div class="tc-due">📅 ${new Date(i.due+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>`
-        : '';
-      return `<div class="task-card mil">
-        <div class="tc-header"><span class="tc-mat">🪖 Fase Militar</span><span class="tc-day">${i.day} · 2:30 – 4:00</span></div>
-        ${instrStr}<div class="tc-desc">${i.task}</div>${dueStr}</div>`;
+      headerHtml = `<div class="tc-header"><span class="tc-mat">🪖 Fase Militar</span><span class="tc-day">${i.day} · 2:30 – 4:00</span></div>${instrStr}`;
     }
+
+    return `
+      <div class="task-card ${cardClassBase} ${statusClass}">
+        ${headerHtml}
+        <div class="tc-desc">${i.task}</div>
+        ${dueStr}
+        <div class="tc-actions">
+          <button class="btn-status ${status === 'entregada' ? 'active-delivered' : ''}" onclick="updateTaskStatus('${i.key}', 'entregada')">Entregada</button>
+          <button class="btn-status ${status === 'no-entregada' ? 'active-missing' : ''}" onclick="updateTaskStatus('${i.key}', 'no-entregada')">No Entregada</button>
+          <button class="btn-status ${status === 'aplazada' ? 'active-postponed' : ''}" onclick="updateTaskStatus('${i.key}', 'aplazada')">Aplazada</button>
+        </div>
+      </div>`;
   }).join('') + '</div>';
+}
+
+async function updateTaskStatus(key, status) {
+  const wd = weekData();
+  if(!wd[key]) return;
+  
+  // Si se hace clic en el que ya está activo, volver a pendiente
+  if(wd[key].status === status) {
+    wd[key].status = 'pendiente';
+  } else {
+    wd[key].status = status;
+  }
+  
+  await saveToDB(key, wd[key]);
+  buildTable();
 }
 
 // ── NAVEGACIÓN SEMANAS ──────────────────────────────────────────
@@ -605,6 +779,8 @@ document.getElementById('next-week').onclick = () => { currentWeek++; buildTable
 
 // ── MODAL MATERIAS REGULARES ────────────────────────────────────
 let regKey = null;
+let currentRegType = 'tarea';
+
 function openRegModal(k, mat, day, time){
   regKey = k;
   const entry = weekData()[k] || {};
@@ -612,29 +788,106 @@ function openRegModal(k, mat, day, time){
   document.getElementById('rm-sub').textContent = `${day} · ${time} — Semana ${currentWeek} (${getDayDate(currentWeek, DAYS.indexOf(day))})`;
   document.getElementById('rm-task').value = entry.task || '';
   document.getElementById('rm-due').value  = entry.due  || '';
+  document.getElementById('rm-notes').value = entry.notes || '';
+  
+  if(!entry.task && !entry.notes) {
+    // Es una materia vacía, mostrar flujo de selección de tipo
+    document.getElementById('reg-flow-type').style.display = 'block';
+    document.getElementById('reg-details').style.display = 'none';
+  } else {
+    // Ya tiene datos, mostrar detalles directamente
+    currentRegType = entry.type || 'tarea';
+    showRegDetails();
+  }
+  
   document.getElementById('overlay-reg').classList.add('open');
+}
+
+function setRegType(type) {
+  currentRegType = type;
+  showRegDetails();
+}
+
+function showRegDetails() {
+  document.getElementById('reg-flow-type').style.display = 'none';
+  document.getElementById('reg-details').style.display = 'block';
+  
+  const badge = document.getElementById('reg-type-badge');
+  const labelDesc = document.getElementById('label-desc');
+  
+  if(currentRegType === 'tarea') {
+    badge.textContent = 'Tarea';
+    badge.style.background = 'var(--y-bg)';
+    badge.style.color = 'var(--y-tx)';
+    labelDesc.textContent = 'Que toca hacer';
+  } else if(currentRegType === 'reclamo') {
+    badge.textContent = 'Reclamo';
+    badge.style.background = 'var(--r-bg)';
+    badge.style.color = 'var(--r-tx)';
+    labelDesc.textContent = 'Motivo del reclamo';
+  } else if(currentRegType === 'examen') {
+    badge.textContent = 'Examen';
+    badge.style.background = 'var(--e-bg)';
+    badge.style.color = 'var(--e-tx)';
+    labelDesc.textContent = 'Temas del examen';
+  }
+  
   setTimeout(() => document.getElementById('rm-task').focus(), 80);
 }
+
 document.getElementById('rm-cancel').onclick = () => document.getElementById('overlay-reg').classList.remove('open');
 document.getElementById('overlay-reg').onclick = e => {
   if(e.target === document.getElementById('overlay-reg')) document.getElementById('overlay-reg').classList.remove('open');
 };
+
 document.getElementById('rm-save').onclick = async () => {
   const task = document.getElementById('rm-task').value.trim();
   const due  = document.getElementById('rm-due').value;
+  const notes = document.getElementById('rm-notes').value.trim();
   const wd   = weekData();
-  const entry = task ? {task, due} : null;
   
-  if(task) wd[regKey] = entry; else delete wd[regKey];
+  const entry = (task || notes) ? {task, due, type: currentRegType, notes} : null;
+  
+  if(entry) wd[regKey] = entry; else delete wd[regKey];
   
   await saveToDB(regKey, entry);
   document.getElementById('overlay-reg').classList.remove('open'); 
   buildTable();
 };
+
 document.getElementById('rm-clear').onclick = async () => {
   delete weekData()[regKey]; 
   await deleteFromDB(regKey);
   document.getElementById('overlay-reg').classList.remove('open'); 
+  buildTable();
+};
+
+// ── MODAL TAREAS GENERALES ──────────────────────────────────────
+let genKey = null;
+function openGenModal(k, title) {
+  genKey = k;
+  const entry = weekData()[k] || {};
+  document.getElementById('gen-title').textContent = title;
+  document.getElementById('gen-week-num').textContent = currentWeek;
+  document.getElementById('gen-input').value = entry.task || '';
+  document.getElementById('overlay-gen').classList.add('open');
+  setTimeout(() => document.getElementById('gen-input').focus(), 80);
+}
+
+document.getElementById('gen-cancel').onclick = () => document.getElementById('overlay-gen').classList.remove('open');
+document.getElementById('overlay-gen').onclick = e => {
+  if(e.target === document.getElementById('overlay-gen')) document.getElementById('overlay-gen').classList.remove('open');
+};
+
+document.getElementById('gen-save').onclick = async () => {
+  const task = document.getElementById('gen-input').value.trim();
+  const wd = weekData();
+  const entry = task ? {task, type: 'general'} : null;
+  
+  if(task) wd[genKey] = entry; else delete wd[genKey];
+  
+  await saveToDB(genKey, entry);
+  document.getElementById('overlay-gen').classList.remove('open');
   buildTable();
 };
 
