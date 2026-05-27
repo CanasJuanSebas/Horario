@@ -65,9 +65,9 @@ setInterval(() => {
   const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
   
   // Lógica para encontrar la semana actual (basada en ANCHOR_WEEK)
-  const ANCHOR_MON = new Date(2026, 4, 4);
+  const ANCHOR_MON = new Date(2026, 4, 25);
   const diffDays = Math.floor((now - ANCHOR_MON) / (1000 * 60 * 60 * 24));
-  const currentWeekNum = 14 + Math.floor(diffDays / 7);
+  const currentWeekNum = 18 + Math.floor(diffDays / 7);
 
   BLOCK_TIMES.forEach((block, idx) => {
     const colIdx = day - 1;
