@@ -80,7 +80,7 @@ setInterval(() => {
       if (currentTime === block.start) {
         showNotification(taskData, `🔔 Empieza ${subject} (Tienes pendiente)`);
       } else if (currentTime === block.end) {
-        showNotification(taskData, `✅ Terminó ${subject} (Confirma si resolviste el pendiente)`);
+        showNotification(taskData, `✅ Terminó ${subject} (¿Hiciste la tarea?)`);
       }
     }
   });
@@ -96,9 +96,8 @@ function showNotification(row, customTitle) {
     vibrate: [200, 100, 200],
     tag: 'task-' + row.cell_key,
     renotify: true,
-    data: { url: './horario.html' }
+    data: { url: './' }
   };
-
   self.registration.showNotification(title, options);
 }
 
@@ -118,12 +117,12 @@ self.addEventListener('notificationclick', function(event) {
     clients.matchAll({ type: 'window' }).then(windowClients => {
       for (var i = 0; i < windowClients.length; i++) {
         var client = windowClients[i];
-        if (client.url.includes('horario.html') && 'focus' in client) {
+        if (client.url.includes('index.html') && 'focus' in client) {
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow('./horario.html');
+        return clients.openWindow('./');
       }
     })
   );

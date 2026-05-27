@@ -1,7 +1,8 @@
 {
   "name": "Horario Institucional",
   "short_name": "Horario",
-  "start_url": "./horario.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ece9e3",
   "theme_color": "#2e6b10",
