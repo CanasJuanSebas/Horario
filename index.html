@@ -692,9 +692,11 @@ async function enablePushNotifications() {
       });
     }
 
-    const { error } = await withRetry(() => supabaseClient
-      .from('push_subscriptions')
-      .upsert(subToRow(sub), { onConflict: 'endpoint' }));
+const { error } = await withRetry(() =>
+  supabaseClient
+    .from('push_subscriptions')
+    .insert(subToRow(sub))
+);
 
     if (error) {
       showToast(friendlyErrorMessage(error, 'activar las notificaciones'), 'error');
