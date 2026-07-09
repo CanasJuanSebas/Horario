@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horario 11ª</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2e6b10">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g-bg:#d6f0c2;--g-br:#7bbf45;--g-tx:#2e6b10;
+  --y-bg:#fde9a0;--y-br:#e6a817;--y-tx:#7a4e00;
+  --b-bg:#c7e3f8;--b-br:#3a8fd4;--b-tx:#0b3d6b;
+  --r-bg:#f8d7da;--r-br:#f5c6cb;--r-tx:#721c24;
+  --e-bg:#b8d1f3;--e-br:#4a90e2;--e-tx:#003366;
+  --f-bg:#f0ede8;--f-tx:#888078;
+  --sf:#ffffff;--sf2:#f7f5f2;--sf3:#eeebe6;
+  --bd:#dbd7d0;
+  --tx:#1a1816;--tx2:#6b6560;--tx3:#aaa49e;
+  --rad:10px;--rad-s:6px;
+}
+body{font-family:'DM Sans',sans-serif;background:#ece9e3;color:var(--tx);min-height:100vh;padding:20px 14px 48px}
+.page{max-width:1060px;margin:0 auto}
+
+/* Header */
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:24px;font-weight:600;letter-spacing:-.5px}
+header p{font-size:12.5px;color:var(--tx2);margin-top:3px}
+header #notif-toggle{margin-top:10px}
+
+/* Week bar */
+.week-bar{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:12px 20px}
+.week-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--bd);background:var(--sf2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--tx);transition:background .12s;flex-shrink:0}
+.week-btn:hover{background:var(--sf3)}
+.week-info{text-align:center;min-width:180px}
+.week-num{font-size:20px;font-weight:600;color:var(--tx)}
+.week-dates{font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;margin-top:2px}
+
+/* Legend */
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--tx2)}
+.legend-dot{width:12px;height:12px;border-radius:3px;border:1.5px solid}
+
+/* Table */
+.table-wrap{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--bd);background:var(--sf);box-shadow:0 2px 14px rgba(0,0,0,.07)}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:640px}
+thead th{background:var(--sf2);font-size:11px;font-weight:600;color:var(--tx2);letter-spacing:.4px;text-transform:uppercase;padding:9px 6px;border-bottom:1px solid var(--bd);text-align:center}
+thead th:first-child{width:72px}
+/* Viernes header highlight */
+thead th.fri-head{background:#e8f2fb;color:#185fa5}
+
+.time-cell{background:var(--sf2);border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:5px 4px;text-align:center;vertical-align:middle;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.5;white-space:pre}
+.descanso-row td{background:var(--r-bg);text-align:center;padding:5px;font-size:10px;font-weight:600;letter-spacing:1.2px;color:var(--r-tx);text-transform:uppercase;border-bottom:1px solid var(--bd)}
+.gap-row td{background:var(--sf2);border-bottom:1px solid var(--bd);height:10px}
+
+.cell{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:7px 8px;vertical-align:top;cursor:pointer;transition:filter .12s,transform .1s;min-height:52px}
+.cell:last-child{border-right:none}
+.cell:hover{filter:brightness(.93);transform:scale(.997)}
+.cell:active{transform:scale(.993)}
+.cell.green{background:var(--g-bg)}
+.cell.yellow{background:var(--y-bg)}
+.cell.red{background:var(--r-bg)}
+.cell.blue-exam{background:var(--e-bg)}
+.cell.blue{background:var(--b-bg)}
+
+.mat-name{font-size:12px;font-weight:600;line-height:1.3}
+.cell.green .mat-name{color:var(--g-tx)}
+.cell.yellow .mat-name{color:var(--y-tx)}
+.cell.red .mat-name{color:var(--r-tx)}
+.cell.blue-exam .mat-name{color:var(--e-tx)}
+.cell.blue .mat-name,.cell.blue-fri .mat-name{color:var(--b-tx)}
+
+.task-snippet{font-size:10.5px;margin-top:3px;line-height:1.3;opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cell.yellow .task-snippet{color:var(--y-tx)}
+.cell.red .task-snippet{color:var(--r-tx)}
+.cell.blue-exam .task-snippet{color:var(--e-tx)}
+
+.due-badge{display:inline-block;margin-top:3px;font-size:9.5px;background:rgba(255,255,255,.55);border-radius:3px;padding:1px 5px;font-family:'DM Mono',monospace}
+.cell.yellow .due-badge{color:var(--y-tx)}
+.cell.red .due-badge{color:var(--r-tx)}
+.cell.blue-exam .due-badge{color:var(--e-tx)}
+
+.notes-snippet{font-size:10px;margin-top:4px;color:var(--tx2);font-style:italic;border-top:1px solid rgba(0,0,0,0.05);padding-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+
+.mil-time{font-size:10px;color:var(--b-tx);opacity:.6;margin-top:1px;font-family:'DM Mono',monospace}
+.instructor-badge{font-size:10.5px;margin-top:3px;color:var(--b-tx);opacity:.8;font-style:italic}
+.task-snippet-blue{font-size:10.5px;margin-top:3px;color:var(--b-tx);opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.due-badge-blue{display:inline-block;margin-top:3px;font-size:9.5px;background:rgba(255,255,255,.55);border-radius:3px;padding:1px 5px;color:var(--b-tx);font-family:'DM Mono',monospace}
+
+/* Viernes: fila entera fase militar spanning todo el dia */
+.fri-full-row td.fri-header-cell{
+  background:#d4e9f7;
+  border-bottom:1px solid var(--bd);
+  padding:6px 8px;
+  font-size:11px;
+  font-weight:600;
+  color:#185fa5;
+  text-align:center;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+
+/* Tasks panel */
+.tasks-panel{margin-top:20px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.tasks-panel h2{font-size:15px;font-weight:600;margin-bottom:14px}
+.task-cards{display:flex;flex-direction:column;gap:9px}
+.task-card{border-radius:var(--rad-s);padding:11px 14px}
+.task-card.reg{background:var(--y-bg);border:1.5px solid var(--y-br)}
+.task-card.reg-red{background:var(--r-bg);border:1.5px solid var(--r-br)}
+.task-card.reg-blue{background:var(--e-bg);border:1.5px solid var(--e-br)}
+.task-card.mil{background:var(--b-bg);border:1.5px solid var(--b-br)}
+.tc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.tc-mat{font-size:13px;font-weight:600}
+.task-card.reg .tc-mat{color:var(--y-tx)}
+.task-card.reg-red .tc-mat{color:var(--r-tx)}
+.task-card.reg-blue .tc-mat{color:var(--e-tx)}
+.task-card.mil .tc-mat{color:var(--b-tx)}
+.tc-day{font-size:11px;font-family:'DM Mono',monospace}
+.task-card.reg .tc-day{color:#a06a00}
+.task-card.reg-red .tc-day{color:var(--r-tx)}
+.task-card.reg-blue .tc-day{color:var(--e-tx)}
+.task-card.mil .tc-day{color:#185fa5}
+.tc-desc{font-size:12.5px;margin-top:5px;line-height:1.45}
+.task-card.reg .tc-desc{color:#5a3800}
+.task-card.reg-red .tc-desc{color:var(--r-tx)}
+.task-card.reg-blue .tc-desc{color:var(--e-tx)}
+.task-card.mil .tc-desc{color:#0b3d6b}
+.tc-due{font-size:11px;margin-top:4px}
+.task-card.reg .tc-due{color:#a06a00}
+.task-card.reg-red .tc-due{color:var(--r-tx)}
+.task-card.reg-blue .tc-due{color:var(--e-tx)}
+.task-card.mil .tc-due{color:#185fa5}
+.tc-instructor{font-size:11px;margin-top:3px;color:#185fa5;font-style:italic}
+
+/* Status Buttons */
+.tc-actions{display:flex;gap:6px;margin-top:10px;border-top:1px solid rgba(0,0,0,0.05);padding-top:10px}
+.btn-status{flex:1;padding:5px;font-size:10px;font-weight:600;border-radius:4px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.btn-status:hover{filter:brightness(.95)}
+.btn-status.active-delivered{background:#2e6b10;color:#fff;border-color:#2e6b10}
+.btn-status.active-missing{background:#8b1a1a;color:#fff;border-color:#8b1a1a}
+.btn-status.active-postponed{background:#e6a817;color:#fff;border-color:#e6a817}
+
+.task-card.status-delivered{opacity:0.6;filter:grayscale(0.5)}
+.task-card.status-delivered .tc-desc{text-decoration:line-through}
+
+.no-tasks{text-align:center;padding:20px;font-size:13px;color:var(--tx3)}
+
+/* Extra Tasks Dropdown */
+.extra-tasks-container{margin-top:20px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.extra-header{padding:14px 20px;background:var(--sf2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .12s}
+.extra-header:hover{background:var(--sf3)}
+.extra-header h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.extra-arrow{transition:transform .2s}
+.extra-tasks-container.open .extra-arrow{transform:rotate(180deg)}
+.extra-content{display:none;padding:16px 20px}
+.extra-tasks-container.open .extra-content{display:block}
+.extra-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--bd);gap:12px}
+.extra-item:last-child{border-bottom:none}
+.extra-info{flex:1}
+.extra-name{font-size:13px;font-weight:600;color:var(--tx)}
+.extra-desc{font-size:12px;color:var(--tx2);margin-top:2px}
+.extra-item-btns{display:flex;gap:6px}
+.btn-icon{width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:var(--sf);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s}
+.btn-icon:hover{background:var(--sf2);border-color:var(--tx3)}
+.add-extra-btn{width:100%;margin-top:12px;padding:10px;border:1.5px dashed var(--bd);border-radius:var(--rad-s);background:transparent;color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.add-extra-btn:hover{background:var(--sf2);border-color:var(--tx3);color:var(--tx)}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,24,22,.42);z-index:300;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--sf);border-radius:var(--rad);border:1px solid var(--bd);padding:24px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.15);animation:pop .16s ease}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-size:17px;font-weight:600}
+.modal .msub{font-size:11.5px;color:var(--tx2);margin-top:2px;margin-bottom:16px;font-family:'DM Mono',monospace}
+.modal label{font-size:12px;color:var(--tx2);display:block;margin-bottom:5px;font-weight:500;margin-top:12px}
+.modal label:first-of-type{margin-top:0}
+.modal input[type=text],.modal textarea,.modal input[type=date]{
+  width:100%;border:1.5px solid var(--bd);border-radius:var(--rad-s);padding:8px 11px;
+  font-size:13px;font-family:'DM Sans',sans-serif;color:var(--tx);background:var(--sf2);outline:none;transition:border-color .15s
+}
+.modal textarea{min-height:72px;resize:vertical}
+.modal input:focus,.modal textarea:focus{border-color:var(--g-br)}
+.modal input[type=text]:focus{border-color:#3a8fd4}
+.modal-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap}
+.btn{padding:8px 17px;border-radius:var(--rad-s);border:1.5px solid var(--bd);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--sf);color:var(--tx);transition:background .12s}
+.btn:hover{background:var(--sf2)}
+.btn.primary{background:#2e6b10;color:#d6f0c2;border-color:#2e6b10}
+.btn.primary:hover{background:#245a0d}
+.btn.primary-blue{background:#0b3d6b;color:#c7e3f8;border-color:#0b3d6b}
+.btn.primary-blue:hover{background:#09315a}
+  .btn.danger{color:#8b1a1a;border-color:#f09595;background:transparent}
+  .btn.danger:hover{background:#fff0f0}
+  .divider{height:1px;background:var(--bd);margin:14px 0}
+
+  /* Real-time Toast */
+  #toast-container{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px}
+  .toast{background:var(--tx);color:#fff;padding:12px 20px;border-radius:var(--rad-s);font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:slideIn 0.3s ease-out;display:flex;align-items:center;gap:10px}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  .toast.update{border-left:4px solid var(--g-br)}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;cursor:help}
+  .status-dot.online{background:#2e6b10;box-shadow:0 0 5px #2e6b10}
+  .status-dot.offline{background:#b3261e;box-shadow:0 0 5px #b3261e}
+  .status-dot.connecting{background:#c99a1e;box-shadow:0 0 5px #c99a1e;animation:pulse-dot 1s ease-in-out infinite}
+  @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.35}}
+  .toast.error{border-left:4px solid #b3261e}
+  #notif-toggle{border:1px solid var(--bd);background:var(--sf);border-radius:999px;padding:6px 14px;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:var(--tx);transition:background .15s}
+  #notif-toggle:hover{background:var(--bg,#f2f0ea)}
+  #notif-toggle.active{background:#eaf3e3;border-color:#2e6b10;color:#2e6b10;font-weight:600}
+  #notif-toggle:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>Horario de Cañas y Anny<span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
+  <button id="notif-toggle" title="Recibir notificaciones de tareas y clases">🔕 Activar notificaciones</button>
+</header>
+
+<div class="week-bar">
+  <button class="week-btn" id="prev-week">&#8592;</button>
+  <div class="week-info">
+    <div class="week-num" id="week-num"></div>
+    <div class="week-dates" id="week-dates"></div>
+  </div>
+  <button class="week-btn" id="next-week">&#8594;</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--g-bg);border-color:var(--g-br)"></div>Sin tarea</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--y-bg);border-color:var(--y-br)"></div>Tarea</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--r-bg);border-color:var(--r-br)"></div>Reclamo</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--e-bg);border-color:var(--e-br)"></div>Examen</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--b-bg);border-color:var(--b-br)"></div>Fase Militar</div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr id="thead-row">
+        <th>Hora</th>
+        <th>Lunes</th>
+        <th>Martes</th>
+        <th>Miércoles</th>
+        <th>Jueves</th>
+        <th class="fri-head">Viernes</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="extra-tasks-container" id="extra-tasks-container">
+  <div class="extra-header" onclick="toggleExtraTasks()">
+    <h2>� Tareas Extra (Fuera de Horario)</h2>
+    <span class="extra-arrow">▼</span>
+  </div>
+  <div class="extra-content">
+    <div id="extra-tasks-list">
+      <!-- Se llena dinámicamente -->
+    </div>
+    <button class="add-extra-btn" onclick="openExtraModal()">+ Añadir tarea extra</button>
+  </div>
+</div>
+
+<div class="tasks-panel">
+  <h2>📌 Tareas — <span id="tasks-week-label"></span></h2>
+  <div id="tasks-list"></div>
+</div>
+
+</div>
+
+<!-- Modal materias normales -->
+<div class="overlay" id="overlay-reg">
+  <div class="modal">
+    <h3 id="rm-mat"></h3>
+    <div class="msub" id="rm-sub"></div>
+    
+    <div id="reg-flow-type">
+      <label>¿Qué vas a hacer?</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn" style="flex:1;border-color:var(--y-br);color:var(--y-tx)" onclick="setRegType('tarea')">Tarea</button>
+        <button class="btn" style="flex:1;border-color:var(--r-br);color:var(--r-tx)" onclick="setRegType('reclamo')">Reclamo</button>
+        <button class="btn" style="flex:1;border-color:var(--e-br);color:var(--e-tx)" onclick="setRegType('examen')">Examen</button>
+      </div>
+      <button class="btn" style="width:100%" onclick="showRegDetails()">Solo ver/editar notas</button>
+    </div>
+
+    <div id="reg-details" style="display:none">
+      <div id="reg-type-badge" style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-bottom:10px;text-transform:uppercase"></div>
+      
+      <label id="label-desc">Descripción</label>
+      <textarea id="rm-task" placeholder="Escribe aquí los detalles..."></textarea>
+      
+      <label>Fecha de entrega</label>
+      <input type="date" id="rm-due">
+
+      <div class="divider"></div>
+      
+      <label>Notas generales (no cambian el color)</label>
+      <textarea id="rm-notes" placeholder="Notas, recordatorios, etc..."></textarea>
+
+      <div class="modal-btns">
+        <button class="btn danger" id="rm-clear">Borrar todo</button>
+        <button class="btn" id="rm-cancel">Cancelar</button>
+        <button class="btn primary" id="rm-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tareas Extra -->
+<div class="overlay" id="overlay-extra">
+  <div class="modal">
+    <h3>Tarea Extra</h3>
+    <div class="msub">Tarea fuera del horario regular</div>
+    
+    <label>Título / Materia</label>
+    <input type="text" id="extra-name" placeholder="Ej: Proyecto de Feria, Trámite...">
+    
+    <label>Descripción</label>
+    <textarea id="extra-task" placeholder="Detalles de la tarea..."></textarea>
+    
+    <label>Fecha límite (opcional)</label>
+    <input type="date" id="extra-due">
+
+    <div class="modal-btns">
+      <button class="btn danger" id="extra-clear" style="display:none">Borrar</button>
+      <button class="btn" id="extra-cancel">Cancelar</button>
+      <button class="btn primary" id="extra-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Aplazar Tarea -->
+<div class="overlay" id="overlay-postpone">
+  <div class="modal">
+    <h3>Aplazar Tarea</h3>
+    <div class="msub">Selecciona la nueva fecha y hora</div>
+    
+    <label>Nueva fecha</label>
+    <input type="date" id="postpone-due">
+    
+    <label>Bloque horario</label>
+    <select id="postpone-time" class="btn" style="width:100%; text-align:left; padding:8px 11px; background:var(--sf2)">
+      <!-- Se llena dinámicamente -->
+    </select>
+
+    <div class="modal-btns">
+      <button class="btn" id="postpone-cancel">Cancelar</button>
+      <button class="btn primary" id="postpone-save" style="background:var(--y-br); border-color:var(--y-br); color:var(--y-tx)">Confirmar Aplazamiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Fase Militar -->
+<div class="overlay" id="overlay-mil">
+  <div class="modal">
+    <h3 style="color:var(--b-tx)">Fase </h3>
+    <div class="msub" id="mm-sub"></div>
+    <label>Primero con que toca</label>
+    <input type="text" id="mm-instructor" placeholder="Ortiz - Rojas - Mena">
+    <div class="divider"></div>
+    <label>Tarea</label>
+    <textarea id="mm-task" placeholder=""></textarea>
+    <label>Fecha de entrega</label>
+    <input type="date" id="mm-due">
+    <div class="modal-btns">
+      <button class="btn danger" id="mm-clear">Borrar todo</button>
+      <button class="btn" id="mm-cancel">Cancelar</button>
+      <button class="btn primary-blue" id="mm-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── CONFIGURACIÓN SUPABASE ─────────────────────────────────────
+// IMPORTANTE: Reemplaza con tus credenciales de Supabase
+const SUPABASE_URL = 'https://kibomtadrvantlzjjyvc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lzuN3b6Q7POh5vC4EQ1IxQ_Xs26vbri';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── CONFIGURACIÓN HORARIO ──────────────────────────────────────
+// Semana 21 ancla en lunes 6 de julio de 2026
+const ANCHOR_WEEK = 21;
+const ANCHOR_MON  = new Date(2026, 6, 6); // mes 6 = julio (0-indexed)
+
+function getWeekFromDate(date) {
+  // Ajustar la fecha a mediodía para evitar problemas de zona horaria
+  const d = new Date(date);
+  d.setHours(12,0,0,0);
+  const diff = d - ANCHOR_MON;
+  const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+  return Math.max(1, ANCHOR_WEEK + weeks);
+}
+
+const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+
+// Bloques horarios (Lunes–Jueves); Viernes solo tiene Fase Militar
+const BLOCKS = [
+  {time:'7:00\n7:50',   type:'class', idx:0},
+  {time:'7:50\n8:40',   type:'class', idx:1},
+  {time:'8:40\n9:30',   type:'class', idx:2},
+  {type:'break', label:'D E S C A N S O  —  9:30 a 9:50'},
+  {time:'9:50\n10:40',  type:'class', idx:3},
+  {time:'10:40\n11:30', type:'class', idx:4},
+  {time:'11:30\n12:20', type:'class', idx:5},
+  {type:'break', label:'D E S C A N S O  —  12:20 a 12:50'},
+  {time:'12:50\n1:40',  type:'class', idx:6},
+  {time:'1:40\n2:30',   type:'class', idx:7},
+  {type:'gap'},
+  {time:'2:30\n4:00',   type:'militar'},
+];
+
+// Materias Lun–Jue (col 0-3); Viernes (col 4) = solo Fase Militar
+const MATS = {
+  '0-0':'Informática', '0-1':'Matemáticas', '0-2':'Física',    '0-3':'Filosofía',
+  '1-0':'Robótica',    '1-1':'Español',     '1-2':'Español',   '1-3':'Español',
+  '2-0':'Inglés',      '2-1':'Física',      '2-2':'Geometría', '2-3':'Inglés',
+  '3-0':'Política',    '3-1':'Ética',       '3-2':'Inglés',    '3-3':'Español',
+  '4-0':'Matemáticas', '4-1':'Ciencias',    '4-2':'Física',    '4-3':'Artística',
+  '5-0':'Inglés',      '5-1':'Inglés',      '5-2':'Sociales',  '5-3':'Matemáticas',
+  '6-0':'Química',     '6-1':'Química',     '6-2':'Filosofía', '6-3':'Estadística',
+  '7-0':'Edu. Física', '7-1':'Economía',    '7-2':'Química',   '7-3':'Religión',
+};
+
+// ── ESTADO ─────────────────────────────────────────────────────
+let currentWeek = getWeekFromDate(new Date());
+let allData = {};
+
+// ── UTILIDAD: reintentos + manejo de errores de red ─────────────
+// Los fallos de "Failed to fetch" son errores de RED (no llegó respuesta del
+// servidor): proyecto de Supabase pausado/inactivo, sin internet, o bloqueado
+// por un adblock/extensión. Reintentamos un par de veces antes de avisar.
+function isNetworkError(err) {
+  return err instanceof TypeError || (err && /failed to fetch/i.test(err.message || ''));
+}
+
+async function withRetry(taskFn, { retries = 2, delayMs = 900 } = {}) {
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await taskFn();
+      if (result && result.error) {
+        if (isNetworkError(result.error) && attempt < retries) {
+          await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+          continue;
+        }
+        return result;
+      }
+      return result;
+    } catch (err) {
+      lastErr = err;
+      if (isNetworkError(err) && attempt < retries) {
+        await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+        continue;
+      }
+      return { data: null, error: err };
+    }
+  }
+  return { data: null, error: lastErr };
+}
+
+function friendlyErrorMessage(error, action) {
+  if (!error) return null;
+  if (isNetworkError(error)) {
+    return `No se pudo ${action}: sin conexión con el servidor. Revisa tu internet o si el proyecto de Supabase está activo (los proyectos gratuitos se pausan tras un tiempo inactivos).`;
+  }
+  return `Error al ${action}: ${error.message || error}`;
+}
+
+function setConnectionStatus(state) {
+  const statusDot = document.getElementById('connection-status');
+  if (!statusDot) return;
+  statusDot.classList.remove('online', 'offline', 'connecting');
+  if (state === 'online') {
+    statusDot.classList.add('online');
+    statusDot.title = 'Conectado';
+  } else if (state === 'connecting') {
+    statusDot.classList.add('connecting');
+    statusDot.title = 'Conectando…';
+  } else {
+    statusDot.classList.add('offline');
+    statusDot.title = 'Sin conexión con el servidor';
+  }
+}
+
+// Carga inicial y Sincronización Real-time
+async function loadInitialData({ silent = false } = {}) {
+  setConnectionStatus('connecting');
+  const { data, error } = await withRetry(() => supabaseClient.from('schedules').select('*'));
+
+  if (error) {
+    setConnectionStatus('offline');
+    if (!silent) showToast(friendlyErrorMessage(error, 'cargar los datos'), 'error');
+    return false;
+  }
+
+  allData = {};
+  data.forEach(row => {
+    if (!allData[row.week_number]) allData[row.week_number] = {};
+    allData[row.week_number][row.cell_key] = {
+      task: row.task,
+      due: row.due_date,
+      instructor: row.instructor,
+      type: row.type || 'tarea',
+      notes: row.notes || '',
+      status: row.status || 'pendiente'
+    };
+  });
+  setConnectionStatus('online');
+  buildTable();
+  return true;
+}
+
+async function initRealtime() {
+  // Registrar Service Worker para notificaciones en segundo plano
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('Service Worker registrado:', reg);
+    }).catch(err => {
+      console.error('Error al registrar Service Worker:', err);
+    });
+
+    // Si el navegador rota la suscripción push, hay que volver a activarla
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'PUSH_SUBSCRIPTION_CHANGED') {
+        enablePushNotifications();
+      }
+    });
+  }
+
+  // El permiso de notificaciones se pide desde el botón "Activar
+  // notificaciones" (requiere un clic del usuario; pedirlo automáticamente
+  // al cargar la página suele ser bloqueado por el navegador).
+
+  // 1. Cargar datos iniciales de Supabase (con reintentos)
+  await loadInitialData();
+
+  // 2. Escuchar cambios en tiempo real
+  supabaseClient
+    .channel('public:schedules')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
+      const row = payload.new || payload.old;
+
+      if (!allData[row.week_number]) allData[row.week_number] = {};
+
+      if (payload.eventType === 'DELETE') {
+        delete allData[row.week_number][row.cell_key];
+      } else {
+        allData[row.week_number][row.cell_key] = {
+          task: row.task,
+          due: row.due_date,
+          instructor: row.instructor,
+          type: row.type || 'tarea',
+          notes: row.notes || '',
+          status: row.status || 'pendiente'
+        };
+        // Nota: las notificaciones nativas (nueva tarea / cambios) ya no se
+        // disparan aquí. Un trigger en la base de datos envía un Web Push a
+        // todos los dispositivos que activaron notificaciones, sin importar
+        // si tienen esta pestaña abierta o no. Ver sección PUSH más abajo.
+      }
+
+      buildTable();
+    })
+    .subscribe((status) => {
+      console.log("Estado de suscripción Realtime:", status);
+      if (status === 'SUBSCRIBED') {
+        setConnectionStatus('online');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setConnectionStatus('offline');
+      }
+    });
+}
+
+// Reintentar automáticamente cuando el navegador recupera la conexión
+window.addEventListener('online', () => loadInitialData({ silent: true }));
+window.addEventListener('offline', () => setConnectionStatus('offline'));
+
+async function saveToDB(key, entry, week = currentWeek) {
+  // Asegurarnos de que si la fecha es un string vacío, se guarde como null
+  const formattedDate = (entry && entry.due && entry.due.trim() !== '') ? entry.due : null;
+
+  const { error } = await withRetry(() => supabaseClient
+    .from('schedules')
+    .upsert({
+      week_number: week,
+      cell_key: key,
+      task: entry ? entry.task : null,
+      due_date: formattedDate,
+      instructor: entry ? entry.instructor : null,
+      type: entry ? entry.type : null,
+      notes: entry ? entry.notes : null,
+      status: entry ? entry.status : 'pendiente',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'week_number,cell_key' }));
+
+  if (error) {
+    setConnectionStatus('offline');
+    showToast(friendlyErrorMessage(error, 'guardar'), 'error');
+  } else {
+    setConnectionStatus('online');
+  }
+}
+
+async function deleteFromDB(key, week = currentWeek) {
+  const { error } = await withRetry(() => supabaseClient
+    .from('schedules')
+    .delete()
+    .match({ week_number: week, cell_key: key }));
+
+  if (error) {
+    setConnectionStatus('offline');
+    showToast(friendlyErrorMessage(error, 'borrar'), 'error');
+  } else {
+    setConnectionStatus('online');
+  }
+}
+
+// ── NOTIFICACIONES PUSH (server → todos los suscritos) ──────────
+// Llave pública VAPID (la privada vive solo en el servidor / Edge Function).
+const VAPID_PUBLIC_KEY = 'BFLeJdUUDqGKu4Z6ew02VHWR66R9FzasPkYaMebTKx-TQyNxtHoz7owDxdscIGe-uQvbOd7WmuA-Av6khtvLi78';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function subToRow(sub) {
+  const json = sub.toJSON();
+  return { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth };
+}
+
+async function getExistingSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+async function refreshNotifButton() {
+  const btn = document.getElementById('notif-toggle');
+  if (!btn) return;
+
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    btn.disabled = true;
+    btn.textContent = '🔕 No disponible en este navegador';
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    btn.classList.remove('active');
+    btn.textContent = '🔕 Notificaciones bloqueadas';
+    btn.title = 'Las bloqueaste en el navegador. Actívalas desde los ajustes del sitio.';
+    return;
+  }
+
+  const sub = await getExistingSubscription();
+  if (sub) {
+    btn.classList.add('active');
+    btn.textContent = '🔔 Notificaciones activadas';
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '🔕 Activar notificaciones';
+  }
+}
+
+async function enablePushNotifications() {
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    showToast('No se activaron las notificaciones: permiso denegado.', 'error');
+    await refreshNotifButton();
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    const { error } = await withRetry(() => supabaseClient
+      .from('push_subscriptions')
+      .upsert(subToRow(sub), { onConflict: 'endpoint' }));
+
+    if (error) {
+      showToast(friendlyErrorMessage(error, 'activar las notificaciones'), 'error');
+    } else {
+      showToast('Notificaciones activadas en este dispositivo ✅');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('No se pudo activar las notificaciones: ' + err.message, 'error');
+  }
+  await refreshNotifButton();
+}
+
+async function disablePushNotifications() {
+  try {
+    const sub = await getExistingSubscription();
+    if (sub) {
+      const row = subToRow(sub);
+      await sub.unsubscribe();
+      await withRetry(() => supabaseClient.from('push_subscriptions').delete().match({ endpoint: row.endpoint }));
+    }
+    showToast('Notificaciones desactivadas en este dispositivo');
+  } catch (err) {
+    console.error(err);
+    showToast('No se pudo desactivar las notificaciones: ' + err.message, 'error');
+  }
+  await refreshNotifButton();
+}
+
+document.getElementById('notif-toggle').addEventListener('click', async () => {
+  const btn = document.getElementById('notif-toggle');
+  if (btn.disabled) return;
+  const sub = await getExistingSubscription();
+  if (sub) {
+    await disablePushNotifications();
+  } else {
+    await enablePushNotifications();
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(refreshNotifButton).catch(() => {});
+}
+
+function showToast(msg, type = 'update') {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), type === 'error' ? 6000 : 4000);
+}
+
+function weekData(){ if(!allData[currentWeek]) allData[currentWeek]={}; return allData[currentWeek]; }
+function isExpired(due){ if(!due) return false; return new Date(due+'T23:59:59') < new Date(); }
+
+// ── FECHAS ─────────────────────────────────────────────────────
+function getMonday(week){
+  const d = new Date(ANCHOR_MON);
+  d.setDate(d.getDate() + (week - ANCHOR_WEEK) * 7);
+  return d;
+}
+function getWeekDates(week){
+  const mon = getMonday(week);
+  const fri = new Date(mon); fri.setDate(mon.getDate()+4);
+  const fmt = d => d.toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+  return `${fmt(mon)} – ${fmt(fri)} de ${mon.getFullYear()}`;
+}
+function getDayDate(week, col){
+  // col 0=Lun … 4=Vie
+  const mon = getMonday(week);
+  const d = new Date(mon); d.setDate(mon.getDate()+col);
+  return d.toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+}
+
+// ── CONSTRUIR TABLA ─────────────────────────────────────────────
+function buildTable(){
+  document.getElementById('week-num').textContent   = `Semana ${currentWeek}`;
+  document.getElementById('week-dates').textContent = getWeekDates(currentWeek);
+  document.getElementById('tasks-week-label').textContent = `Semana ${currentWeek}`;
+
+  const wd    = weekData();
+  
+  buildExtraTasksList();
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  BLOCKS.forEach(block => {
+    const tr = document.createElement('tr');
+
+    // ── DESCANSO ──
+    if(block.type === 'break'){
+      tr.className = 'descanso-row';
+      const td = document.createElement('td'); td.colSpan = 6; td.textContent = block.label;
+      tr.appendChild(td); tbody.appendChild(tr); return;
+    }
+
+    // ── GAP ──
+    if(block.type === 'gap'){
+      tr.className = 'gap-row';
+      const td = document.createElement('td'); td.colSpan = 6;
+      tr.appendChild(td); tbody.appendChild(tr); return;
+    }
+
+    // ── CELDA HORA ──
+    const tc = document.createElement('td'); tc.className = 'time-cell'; tc.textContent = block.time;
+    tr.appendChild(tc);
+
+    // ── FASE MILITAR (fila completa Lun-Vie) ──
+    if(block.type === 'militar'){
+      // Lunes a Viernes (5 columnas)
+      for(let col = 0; col < 5; col++){
+        const k     = `mil-${col}`;
+        const entry = wd[k] || {};
+        // Solo la tarea (no el instructor) cuenta para el color
+        const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+        const isDelivered = entry.status === 'entregada';
+        const isFri   = col === 4;
+
+        const td = document.createElement('td');
+        td.className = isFri ? 'cell blue-fri' : 'cell blue';
+        if(isDelivered) td.style.opacity = '0.7';
+
+        let html = `<div class="mat-name">Fase Militar</div>`;
+        if(entry.instructor) html += `<div class="instructor-badge">👤 ${entry.instructor}</div>`;
+        if(hasTask){
+          const taskStyle = isDelivered ? 'text-decoration:line-through; opacity:0.6' : '';
+          html += `<div class="task-snippet-blue" style="${taskStyle}">${entry.task}</div>`;
+          if(entry.due){
+            const d = new Date(entry.due+'T12:00');
+            html += `<div class="due-badge-blue">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
+          }
+        }
+        td.innerHTML = html;
+        td.onclick = () => openMilModal(k, DAYS[col]);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr); return;
+    }
+
+    // ── MATERIAS REGULARES (Lun–Jue, col 0-3) ──
+    for(let col = 0; col < 4; col++){
+      const k     = `${block.idx}-${col}`;
+      const mat   = MATS[k] || '';
+      const entry = wd[k] || {};
+      const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+      const isDelivered = entry.status === 'entregada';
+      
+      let colorClass = 'green';
+      if(hasTask) {
+        if(isDelivered) colorClass = 'green'; // Si está entregada, vuelve a verde (sin tarea pendiente)
+        else if(entry.type === 'reclamo') colorClass = 'red';
+        else if(entry.type === 'examen') colorClass = 'blue-exam';
+        else colorClass = 'yellow';
+      }
+
+      const td = document.createElement('td');
+      td.className = 'cell ' + colorClass;
+      if(isDelivered) td.style.opacity = '0.7';
+
+      let html = `<div class="mat-name">${mat}</div>`;
+      if(hasTask){
+        const taskStyle = isDelivered ? 'text-decoration:line-through; opacity:0.6' : '';
+        html += `<div class="task-snippet" style="${taskStyle}">${entry.task}</div>`;
+        if(entry.due){
+          const d = new Date(entry.due+'T12:00');
+          html += `<div class="due-badge">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
+        }
+      }
+      if(entry.notes && entry.notes.trim()){
+        html += `<div class="notes-snippet">📝 ${entry.notes}</div>`;
+      }
+      td.innerHTML = html;
+      td.onclick = () => openRegModal(k, mat, DAYS[col], block.time.replace('\n',' – '));
+      tr.appendChild(td);
+    }
+
+    // ── VIERNES: celda azul (sin materia regular) ──
+    const friTd = document.createElement('td');
+    friTd.className = 'cell blue-fri';
+    friTd.style.verticalAlign = 'middle';
+    friTd.style.textAlign = 'center';
+    friTd.innerHTML = `<div class="mat-name" style="color:#185fa5;opacity:.35;font-size:11px;">—</div>`;
+    tr.appendChild(friTd);
+
+    tbody.appendChild(tr);
+  });
+
+  buildTaskList();
+}
+
+// ── PANEL DE TAREAS ─────────────────────────────────────────────
+function buildTaskList(){
+  const wd   = weekData();
+  const list = document.getElementById('tasks-list');
+  const items = [];
+
+  BLOCKS.forEach(block => {
+    if(block.type === 'class'){
+      for(let col = 0; col < 4; col++){
+        const k     = `${block.idx}-${col}`;
+        const entry = wd[k] || {};
+        if(entry.task && entry.task.trim() && !isExpired(entry.due))
+          items.push({key: k, type:'reg', mat:MATS[k], day:DAYS[col], time:block.time.replace('\n',' – '), task:entry.task, due:entry.due, taskType:entry.type, status: entry.status || 'pendiente'});
+      }
+    }
+    if(block.type === 'militar'){
+      for(let col = 0; col < 5; col++){
+        const k     = `mil-${col}`;
+        const entry = wd[k] || {};
+        // Instructor solo aparece si hay tarea; de lo contrario no sale en el panel
+        if(entry.task && entry.task.trim() && !isExpired(entry.due))
+          items.push({key: k, type:'mil', day:DAYS[col], task:entry.task, due:entry.due, instructor:entry.instructor||'', status: entry.status || 'pendiente'});
+      }
+    }
+  });
+
+  if(!items.length){
+    list.innerHTML = '<div class="no-tasks">¡Sin tareas pendientes esta semana! 🎉</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="task-cards">' + items.map(i => {
+    const status = i.status || 'pendiente';
+    const cardClassBase = i.type === 'reg' ? (i.taskType === 'reclamo' ? 'reg-red' : (i.taskType === 'examen' ? 'reg-blue' : 'reg')) : 'mil';
+    const statusClass = status === 'entregada' ? 'status-delivered' : '';
+
+    const dueStr = i.due
+      ? `<div class="tc-due">📅 ${new Date(i.due+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>`
+      : '';
+    
+    let headerHtml = '';
+    if(i.type === 'reg'){
+      const typeLabel = i.taskType ? `<span style="text-transform:uppercase; font-size:10px; font-weight:bold; margin-right:5px">[${i.taskType}]</span>` : '';
+      headerHtml = `<div class="tc-header"><span class="tc-mat">${typeLabel}${i.mat}</span><span class="tc-day">${i.day} · ${i.time}</span></div>`;
+    } else {
+      const instrStr = i.instructor ? `<div class="tc-instructor">👤 ${i.instructor}</div>` : '';
+      headerHtml = `<div class="tc-header"><span class="tc-mat">🪖 Fase Militar</span><span class="tc-day">${i.day} · 2:30 – 4:00</span></div>${instrStr}`;
+    }
+
+    return `
+      <div class="task-card ${cardClassBase} ${statusClass}">
+        ${headerHtml}
+        <div class="tc-desc">${i.task}</div>
+        ${dueStr}
+        <div class="tc-actions">
+          <button class="btn-status ${status === 'entregada' ? 'active-delivered' : ''}" onclick="updateTaskStatus('${i.key}', 'entregada')">Entregada</button>
+          <button class="btn-status ${status === 'no-entregada' ? 'active-missing' : ''}" onclick="updateTaskStatus('${i.key}', 'no-entregada')">No Entregada</button>
+          <button class="btn-status ${status === 'aplazada' ? 'active-postponed' : ''}" onclick="updateTaskStatus('${i.key}', 'aplazada')">Aplazada</button>
+        </div>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+async function updateTaskStatus(key, status) {
+  const wd = weekData();
+  if(!wd[key]) return;
+  
+  // Si es aplazada, abrir modal especial
+  if(status === 'aplazada' && wd[key].status !== 'aplazada') {
+    openPostponeModal(key);
+    return;
+  }
+
+  // Si se hace clic en el que ya está activo, volver a pendiente
+  if(wd[key].status === status) {
+    wd[key].status = 'pendiente';
+  } else {
+    wd[key].status = status;
+  }
+  
+  await saveToDB(key, wd[key]);
+  buildTable();
+}
+
+// ── MODAL APLAZAR ──────────────────────────────────────────────
+let postponeKey = null;
+function openPostponeModal(key) {
+  postponeKey = key;
+  const entry = weekData()[key] || {};
+  
+  // Llenar select de horas si está vacío
+  const select = document.getElementById('postpone-time');
+  if(select.options.length === 0) {
+    BLOCKS.filter(b => b.time).forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.time.replace('\n', ' - ');
+      opt.textContent = b.time.replace('\n', ' - ');
+      select.appendChild(opt);
+    });
+  }
+
+  document.getElementById('postpone-due').value = entry.due || '';
+  document.getElementById('overlay-postpone').classList.add('open');
+}
+
+document.getElementById('postpone-cancel').onclick = () => document.getElementById('overlay-postpone').classList.remove('open');
+document.getElementById('overlay-postpone').onclick = e => {
+  if(e.target === document.getElementById('overlay-postpone')) document.getElementById('overlay-postpone').classList.remove('open');
+};
+document.getElementById('postpone-save').onclick = async () => {
+  const newDueStr = document.getElementById('postpone-due').value;
+  const newTime = document.getElementById('postpone-time').value;
+  const wd = weekData();
+  
+  if(wd[postponeKey] && newDueStr) {
+    const entry = {...wd[postponeKey]}; // Copia de la tarea
+    const oldWeek = currentWeek;
+    const oldKey = postponeKey;
+
+    // Calcular nueva ubicación
+    const dateObj = new Date(newDueStr + 'T12:00:00');
+    const targetWeek = getWeekFromDate(dateObj);
+    const targetDayCol = (dateObj.getDay() + 6) % 7; // Convertir 0=Dom a 0=Lun, ..., 4=Vie
+    
+    if(targetDayCol > 4) {
+      showToast("Solo puedes aplazar a días de clase (Lunes a Viernes)");
+      return;
+    }
+
+    // Buscar bloque horario
+    const targetBlock = BLOCKS.find(b => b.time && b.time.replace('\n', ' - ') === newTime);
+    if(!targetBlock) return;
+
+    let targetKey = "";
+    if(targetBlock.type === 'militar') {
+      targetKey = `mil-${targetDayCol}`;
+    } else {
+      targetKey = `${targetBlock.idx}-${targetDayCol}`;
+    }
+
+    // Actualizar datos de la tarea
+    entry.status = 'aplazada';
+    entry.due = newDueStr;
+    if(!entry.notes) entry.notes = "";
+    entry.notes = `Aplazada para las ${newTime}. ` + entry.notes;
+    
+    // 1. Borrar de la ubicación antigua
+    delete allData[oldWeek][oldKey];
+    await deleteFromDB(oldKey, oldWeek);
+
+    // 2. Guardar en la nueva ubicación
+    if(!allData[targetWeek]) allData[targetWeek] = {};
+    allData[targetWeek][targetKey] = entry;
+    await saveToDB(targetKey, entry, targetWeek);
+
+    document.getElementById('overlay-postpone').classList.remove('open');
+    buildTable();
+    showToast(`Tarea aplazada a la Semana ${targetWeek}, ${DAYS[targetDayCol]}`);
+  } else {
+    showToast("Selecciona una fecha válida");
+  }
+};
+
+// ── NAVEGACIÓN SEMANAS ──────────────────────────────────────────
+document.getElementById('prev-week').onclick = () => { if(currentWeek > 1) currentWeek--; buildTable(); };
+document.getElementById('next-week').onclick = () => { currentWeek++; buildTable(); };
+
+// ── MODAL MATERIAS REGULARES ────────────────────────────────────
+let regKey = null;
+let currentRegType = 'tarea';
+
+function openRegModal(k, mat, day, time){
+  regKey = k;
+  const entry = weekData()[k] || {};
+  document.getElementById('rm-mat').textContent = mat;
+  document.getElementById('rm-sub').textContent = `${day} · ${time} — Semana ${currentWeek} (${getDayDate(currentWeek, DAYS.indexOf(day))})`;
+  document.getElementById('rm-task').value = entry.task || '';
+  document.getElementById('rm-due').value  = entry.due  || '';
+  document.getElementById('rm-notes').value = entry.notes || '';
+  
+  if(!entry.task && !entry.notes) {
+    // Es una materia vacía, mostrar flujo de selección de tipo
+    document.getElementById('reg-flow-type').style.display = 'block';
+    document.getElementById('reg-details').style.display = 'none';
+  } else {
+    // Ya tiene datos, mostrar detalles directamente
+    currentRegType = entry.type || 'tarea';
+    showRegDetails();
+  }
+  
+  document.getElementById('overlay-reg').classList.add('open');
+}
+
+function setRegType(type) {
+  currentRegType = type;
+  showRegDetails();
+}
+
+function showRegDetails() {
+  document.getElementById('reg-flow-type').style.display = 'none';
+  document.getElementById('reg-details').style.display = 'block';
+  
+  const badge = document.getElementById('reg-type-badge');
+  const labelDesc = document.getElementById('label-desc');
+  
+  if(currentRegType === 'tarea') {
+    badge.textContent = 'Tarea';
+    badge.style.background = 'var(--y-bg)';
+    badge.style.color = 'var(--y-tx)';
+    labelDesc.textContent = 'Que toca hacer';
+  } else if(currentRegType === 'reclamo') {
+    badge.textContent = 'Reclamo';
+    badge.style.background = 'var(--r-bg)';
+    badge.style.color = 'var(--r-tx)';
+    labelDesc.textContent = 'Motivo del reclamo';
+  } else if(currentRegType === 'examen') {
+    badge.textContent = 'Examen';
+    badge.style.background = 'var(--e-bg)';
+    badge.style.color = 'var(--e-tx)';
+    labelDesc.textContent = 'Temas del examen';
+  }
+  
+  setTimeout(() => document.getElementById('rm-task').focus(), 80);
+}
+
+document.getElementById('rm-cancel').onclick = () => document.getElementById('overlay-reg').classList.remove('open');
+document.getElementById('overlay-reg').onclick = e => {
+  if(e.target === document.getElementById('overlay-reg')) document.getElementById('overlay-reg').classList.remove('open');
+};
+
+document.getElementById('rm-save').onclick = async () => {
+  const task = document.getElementById('rm-task').value.trim();
+  const due  = document.getElementById('rm-due').value;
+  const notes = document.getElementById('rm-notes').value.trim();
+  const wd   = weekData();
+  
+  const entry = (task || notes) ? {task, due, type: currentRegType, notes} : null;
+  
+  if(entry) wd[regKey] = entry; else delete wd[regKey];
+  
+  await saveToDB(regKey, entry);
+  document.getElementById('overlay-reg').classList.remove('open'); 
+  buildTable();
+};
+
+document.getElementById('rm-clear').onclick = async () => {
+  delete weekData()[regKey]; 
+  await deleteFromDB(regKey);
+  document.getElementById('overlay-reg').classList.remove('open'); 
+  buildTable();
+};
+
+// ── TAREAS EXTRA ───────────────────────────────────────────────
+function toggleExtraTasks() {
+  document.getElementById('extra-tasks-container').classList.toggle('open');
+}
+
+function buildExtraTasksList() {
+  const wd = weekData();
+  const list = document.getElementById('extra-tasks-list');
+  const extras = Object.keys(wd)
+    .filter(k => k.startsWith('extra-'))
+    .map(k => ({ key: k, ...wd[k] }));
+
+  if (extras.length === 0) {
+    list.innerHTML = '<div class="no-tasks" style="padding:10px">No hay tareas extra para esta semana.</div>';
+    return;
+  }
+
+  list.innerHTML = extras.map(e => `
+    <div class="extra-item">
+      <div class="extra-info">
+        <div class="extra-name">${e.instructor || 'Tarea Extra'}</div>
+        <div class="extra-desc">${e.task} ${e.due ? `<span style="opacity:0.6; margin-left:8px">📅 ${e.due}</span>` : ''}</div>
+      </div>
+      <div class="extra-item-btns">
+        <button class="btn-icon" onclick="openExtraModal('${e.key}')">✏️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+let currentExtraKey = null;
+function openExtraModal(key = null) {
+  currentExtraKey = key;
+  const entry = key ? weekData()[key] : null;
+  
+  document.getElementById('extra-name').value = entry ? (entry.instructor || '') : '';
+  document.getElementById('extra-task').value = entry ? (entry.task || '') : '';
+  document.getElementById('extra-due').value = entry ? (entry.due || '') : '';
+  
+  document.getElementById('extra-clear').style.display = key ? 'block' : 'none';
+  document.getElementById('overlay-extra').classList.add('open');
+}
+
+document.getElementById('extra-cancel').onclick = () => document.getElementById('overlay-extra').classList.remove('open');
+document.getElementById('overlay-extra').onclick = e => {
+  if(e.target === document.getElementById('overlay-extra')) document.getElementById('overlay-extra').classList.remove('open');
+};
+document.getElementById('extra-save').onclick = async () => {
+  const name = document.getElementById('extra-name').value.trim();
+  const task = document.getElementById('extra-task').value.trim();
+  const due = document.getElementById('extra-due').value;
+  
+  if (!task) {
+    showToast("La descripción es obligatoria");
+    return;
+  }
+
+  const key = currentExtraKey || `extra-${Date.now()}`;
+  const entry = { instructor: name, task, due, type: 'extra', status: 'pendiente' };
+  
+  weekData()[key] = entry;
+  await saveToDB(key, entry);
+  document.getElementById('overlay-extra').classList.remove('open');
+  buildTable();
+};
+
+document.getElementById('extra-clear').onclick = async () => {
+  if (currentExtraKey) {
+    delete weekData()[currentExtraKey];
+    await deleteFromDB(currentExtraKey);
+    document.getElementById('overlay-extra').classList.remove('open');
+    buildTable();
+  }
+};
+
+// ── MODAL FASE MILITAR ──────────────────────────────────────────
+let milKey = null;
+function openMilModal(k, day){
+  milKey = k;
+  const entry = weekData()[k] || {};
+  const colIdx = DAYS.indexOf(day);
+  document.getElementById('mm-sub').textContent = `${day} · 2:30 – 4:00 p.m. — Semana ${currentWeek} (${getDayDate(currentWeek, colIdx)})`;
+  document.getElementById('mm-instructor').value = entry.instructor || '';
+  document.getElementById('mm-task').value       = entry.task       || '';
+  document.getElementById('mm-due').value        = entry.due        || '';
+  document.getElementById('overlay-mil').classList.add('open');
+  setTimeout(() => document.getElementById('mm-instructor').focus(), 80);
+}
+document.getElementById('mm-cancel').onclick = () => document.getElementById('overlay-mil').classList.remove('open');
+document.getElementById('overlay-mil').onclick = e => {
+  if(e.target === document.getElementById('overlay-mil')) document.getElementById('overlay-mil').classList.remove('open');
+};
+document.getElementById('mm-save').onclick = async () => {
+  const instructor = document.getElementById('mm-instructor').value.trim();
+  const task       = document.getElementById('mm-task').value.trim();
+  const due        = document.getElementById('mm-due').value;
+  const wd         = weekData();
+  const entry      = (instructor || task) ? {instructor, task, due} : null;
+
+  if(entry) wd[milKey] = entry; else delete wd[milKey];
+  
+  await saveToDB(milKey, entry);
+  document.getElementById('overlay-mil').classList.remove('open'); 
+  buildTable();
+};
+document.getElementById('mm-clear').onclick = async () => {
+  delete weekData()[milKey]; 
+  await deleteFromDB(milKey);
+  document.getElementById('overlay-mil').classList.remove('open'); 
+  buildTable();
+};
+
+buildTable();
+initRealtime();
+</script>
+</body>
+</html>
