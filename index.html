@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Horario de Escolar</title>
+<title>Horario Escolar</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2e6b10">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -49,12 +49,22 @@ body{font-family:'DM Sans',sans-serif;background:#ece9e3;color:var(--tx);min-hei
 .toggle-auth{text-align:center;margin-top:15px;color:var(--tx2);font-size:14px;cursor:pointer;text-decoration:underline}
 .toggle-auth:hover{color:var(--tx)}
 
-header{text-align:center;margin-bottom:20px}
-header h1{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:8px}
-.header-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
-#notif-toggle,#dark-mode-toggle,#logout-btn{border:1px solid var(--bd);background:var(--sf);border-radius:999px;padding:6px 14px;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:var(--tx);transition:background .15s}
-#notif-toggle:hover,#dark-mode-toggle:hover,#logout-btn:hover{background:var(--sf3)}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:20px;flex-wrap:wrap}
+header h1{font-size:24px;font-weight:600;letter-spacing:-.5px;margin:0;flex:1;text-align:center}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-buttons{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+#notif-toggle,#logout-btn{border:1px solid var(--bd);background:var(--sf);border-radius:999px;padding:6px 14px;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:var(--tx);transition:background .15s}
+#notif-toggle:hover,#logout-btn:hover{background:var(--sf3)}
 #notif-toggle.active{background:#eaf3e3;border-color:#2e6b10;color:#2e6b10;font-weight:600}
+
+/* Switch de modo oscuro */
+.switch{position:relative;display:inline-block;width:50px;height:26px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;transition:.4s;border-radius:26px}
+.slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background-color:white;transition:.4s;border-radius:50%}
+input:checked + .slider{background-color:#2e6b10}
+input:checked + .slider:before{transform:translateX(24px)}
+.dark-mode-label{font-size:12.5px;color:var(--tx)}
 
 .grade-selector{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:15px}
 .grade-btn{padding:8px 16px;border:1.5px solid var(--bd);background:var(--sf2);border-radius:var(--rad-s);cursor:pointer;color:var(--tx);font-weight:500;transition:all .12s}
@@ -190,6 +200,17 @@ body.dark-mode .event-badge{background:#cc5555}
 .event-name{font-weight:600;font-size:14px}
 .event-details{font-size:12px;color:var(--tx2);margin-top:3px}
 .event-actions{display:flex;gap:6px}
+.btn-icon {
+  border: 1px solid var(--bd);
+  background: var(--sf);
+  border-radius: var(--rad-s);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-icon:hover {
+  background: var(--sf3);
+}
 
 .overlay{display:none;position:fixed;inset:0;background:rgba(26,24,22,.42);z-index:300;align-items:center;justify-content:center;padding:16px}
 .overlay.open{display:flex}
@@ -281,10 +302,16 @@ body.dark-mode .btn.danger:hover{background:#3d0c10}
 
 <div id="app-container" class="hidden">
 <header>
+  <div class="header-left">
+    <label class="switch">
+      <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+      <span class="slider"></span>
+    </label>
+    <span class="dark-mode-label">Modo Oscuro</span>
+  </div>
   <h1>Horario <span id="current-grade-label">11°</span> <span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
   <div class="header-buttons">
     <button id="notif-toggle" title="Recibir notificaciones de tareas y clases">🔕 Activar notificaciones</button>
-    <button id="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Modo Oscuro</button>
     <button id="logout-btn" onclick="handleLogout()">🚪 Cerrar Sesión</button>
   </div>
 </header>
@@ -411,6 +438,16 @@ body.dark-mode .btn.danger:hover{background:#3d0c10}
     <textarea id="event-desc" placeholder="Detalles del evento..."></textarea>
     <label>Fecha</label>
     <input type="date" id="event-date">
+    <div style="display:flex;gap:10px">
+      <div style="flex:1">
+        <label>Hora de inicio</label>
+        <input type="time" id="event-start-time">
+      </div>
+      <div style="flex:1">
+        <label>Hora de fin</label>
+        <input type="time" id="event-end-time">
+      </div>
+    </div>
     <label>Grados afectados</label>
     <select id="event-grades">
       <option value="all">Todos los grados</option>
@@ -677,18 +714,23 @@ function showApp() {
   document.getElementById('app-container').classList.remove('hidden');
   initGradeSelector();
   currentWeek = getWeekFromDate(new Date());
-  if (localStorage.getItem('darkMode') === 'true') {
+  const isDark = localStorage.getItem('darkMode') === 'true';
+  if (isDark) {
     document.body.classList.add('dark-mode');
-    document.getElementById('dark-mode-toggle').textContent = '☀️ Modo Claro';
+    document.getElementById('dark-mode-toggle').checked = true;
   }
   initRealtime();
   buildTable();
 }
 
 function toggleDarkMode() {
-  const isDark = document.body.classList.toggle('dark-mode');
+  const isDark = document.getElementById('dark-mode-toggle').checked;
+  if (isDark) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
   localStorage.setItem('darkMode', isDark);
-  document.getElementById('dark-mode-toggle').textContent = isDark ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
 }
 
 function initGradeSelector() {
@@ -793,12 +835,17 @@ function buildEventsList() {
     container.innerHTML = '<div class="no-tasks">No hay eventos especiales</div>';
     return;
   }
-  container.innerHTML = allEvents.map((event, idx) => `
+  container.innerHTML = allEvents.map((event, idx) => {
+    let timeStr = '';
+    if (event.startTime) {
+      timeStr = event.endTime ? `${event.startTime} - ${event.endTime}` : event.startTime;
+    }
+    return `
     <div class="event-item">
       <div class="event-info">
         <div class="event-name">${event.name}</div>
         <div class="event-details">
-          Fecha: ${new Date(event.date).toLocaleDateString('es-CO')} | Grados: ${event.grades === 'all' ? 'Todos' : event.grades + '°'}
+          Fecha: ${new Date(event.date).toLocaleDateString('es-CO')}${timeStr ? ' | Hora: ' + timeStr : ''} | Grados: ${event.grades === 'all' ? 'Todos' : event.grades + '°'}
         </div>
         <div class="event-details">${event.desc}</div>
       </div>
@@ -807,7 +854,7 @@ function buildEventsList() {
         <button class="btn-icon" onclick="deleteEvent(${idx})">🗑️</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function getEventsForDate(dateStr) {
@@ -825,6 +872,8 @@ function openEventModal(idx = null) {
   document.getElementById('event-name').value = event ? event.name : '';
   document.getElementById('event-desc').value = event ? event.desc : '';
   document.getElementById('event-date').value = event ? event.date : '';
+  document.getElementById('event-start-time').value = event ? (event.startTime || '') : '';
+  document.getElementById('event-end-time').value = event ? (event.endTime || '') : '';
   document.getElementById('event-grades').value = event ? event.grades : 'all';
   document.getElementById('event-clear').style.display = idx !== null ? 'block' : 'none';
   document.getElementById('overlay-event').classList.add('open');
@@ -839,9 +888,11 @@ document.getElementById('event-save').onclick = () => {
   const name = document.getElementById('event-name').value.trim();
   const desc = document.getElementById('event-desc').value.trim();
   const date = document.getElementById('event-date').value;
+  const startTime = document.getElementById('event-start-time').value;
+  const endTime = document.getElementById('event-end-time').value;
   const grades = document.getElementById('event-grades').value;
   if (!name || !date) { showToast('Nombre y fecha son obligatorios', 'error'); return; }
-  const event = { name, desc, date, grades };
+  const event = { name, desc, date, startTime, endTime, grades };
   if (currentEventIdx !== null) allEvents[currentEventIdx] = event;
   else allEvents.push(event);
   saveEvents();
@@ -892,7 +943,13 @@ function buildTable() {
     const timeCell = document.createElement('td'); timeCell.className = 'time-cell'; timeCell.textContent = block.time;
     tr.appendChild(timeCell);
 
+    // Only show militar block for grades 9, 10, 11
     if (block.type === 'militar') {
+      const gradeNum = parseInt(_currentGrade);
+      if (gradeNum < 9) {
+        return; // Skip this block entirely
+      }
+      
       for (let col = 0; col <5; col++) {
         const key = `mil-${col}`;
         const entry = wd[key] || {};
@@ -916,7 +973,13 @@ function buildTable() {
             html += `<div class="due-badge-blue">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
           }
         }
-        events.forEach(e => html += `<div class="event-badge">🎪 ${e.name}</div>`);
+        events.forEach(e => {
+          let eventText = `🎪 ${e.name}`;
+          if (e.startTime) {
+            eventText += e.endTime ? ` (${e.startTime}-${e.endTime})` : ` (${e.startTime})`;
+          }
+          html += `<div class="event-badge">${eventText}</div>`;
+        });
         td.innerHTML = html;
         tr.appendChild(td);
       }
@@ -955,7 +1018,13 @@ function buildTable() {
         }
       }
       if (entry.notes && entry.notes.trim()) html += `<div class="notes-snippet">📝 ${entry.notes}</div>`;
-      events.forEach(e => html += `<div class="event-badge">🎪 ${e.name}</div>`);
+      events.forEach(e => {
+        let eventText = `🎪 ${e.name}`;
+        if (e.startTime) {
+          eventText += e.endTime ? ` (${e.startTime}-${e.endTime})` : ` (${e.startTime})`;
+        }
+        html += `<div class="event-badge">${eventText}</div>`;
+      });
       td.innerHTML = html;
       tr.appendChild(td);
     }
@@ -968,7 +1037,13 @@ function buildTable() {
     friTd.style.verticalAlign = 'middle';
     friTd.style.textAlign = 'center';
     let friHtml = `<div class="mat-name" style="color:#185fa5;opacity:.35;font-size:11px;">—</div>`;
-    events.forEach(e => friHtml += `<div class="event-badge">🎪 ${e.name}</div>`);
+    events.forEach(e => {
+      let eventText = `🎪 ${e.name}`;
+      if (e.startTime) {
+        eventText += e.endTime ? ` (${e.startTime}-${e.endTime})` : ` (${e.startTime})`;
+      }
+      friHtml += `<div class="event-badge">${eventText}</div>`;
+    });
     friTd.innerHTML = friHtml;
     tr.appendChild(friTd);
 
@@ -1003,15 +1078,18 @@ function buildTaskList() {
       }
     }
     if (block.type === 'militar') {
-      for (let col=0; col<5; col++) {
-        const key = `mil-${col}`;
-        const entry = wd[key] || {};
-        if (entry.task && entry.task.trim() && !isExpired(entry.due)) {
-          const userStatus = entry.userStatus && entry.userStatus[userKey];
-          items.push({
-            key, type:'mil', day:DAYS[col], task:entry.task, due:entry.due, instructor:entry.instructor || '',
-            status: userStatus || 'pendiente'
-          });
+      const gradeNum = parseInt(_currentGrade);
+      if (gradeNum >= 9) { // Only show military tasks for grades 9, 10, 11
+        for (let col=0; col<5; col++) {
+          const key = `mil-${col}`;
+          const entry = wd[key] || {};
+          if (entry.task && entry.task.trim() && !isExpired(entry.due)) {
+            const userStatus = entry.userStatus && entry.userStatus[userKey];
+            items.push({
+              key, type:'mil', day:DAYS[col], task:entry.task, due:entry.due, instructor:entry.instructor || '',
+              status: userStatus || 'pendiente'
+            });
+          }
         }
       }
     }
