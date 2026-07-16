@@ -438,11 +438,29 @@ const SUPABASE_KEY = 'sb_publishable_lzuN3b6Q7POh5vC4EQ1IxQ_Xs26vbri';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
-let currentGrade = '11';
+let _currentGrade = '11';
 let currentWeek = 1;
 let allData = {};
 let allEvents = [];
 let users = {};
+
+// Getter y setter para currentGrade para controlar acceso
+Object.defineProperty(window, 'currentGrade', {
+  get: function() {
+    return _currentGrade;
+  },
+  set: function(value) {
+    // Solo permitir cambiar el grado si es admin
+    if (currentUser && currentUser.isAdmin) {
+      _currentGrade = value;
+    } else if (currentUser) {
+      // Si no es admin, mantener el grado del usuario
+      _currentGrade = currentUser.grade;
+    } else {
+      _currentGrade = value;
+    }
+  }
+});
 
 const colombianHolidays = new Set([
   '2025-01-01', '2025-01-06', '2025-03-24', '2025-04-17', '2025-04-18',
@@ -598,7 +616,7 @@ function initAuth() {
 
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
-    currentGrade = currentUser.grade === 'all' ? '11' : currentUser.grade;
+    _currentGrade = currentUser.grade === 'all' ? '11' : currentUser.grade;
     showApp();
   } else {
     showAuth();
@@ -644,7 +662,7 @@ function handleLogin() {
   if (!user || user.password !== password) { showToast('Usuario o contraseña incorrectos', 'error'); return; }
   currentUser = { username, grade: user.grade, isAdmin: user.isAdmin };
   localStorage.setItem('horarioUser', JSON.stringify(currentUser));
-  currentGrade = user.grade === 'all' ? '11' : user.grade;
+  _currentGrade = user.grade === 'all' ? '11' : user.grade;
   showApp();
 }
 
