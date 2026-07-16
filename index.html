@@ -676,19 +676,32 @@ function toggleDarkMode() {
 function initGradeSelector() {
   const container = document.getElementById('grade-selector');
   container.innerHTML = '';
-  ['6','7','8','9','10','11'].forEach(grade => {
-    const btn = document.createElement('button');
-    btn.className = 'grade-btn' + (currentGrade === grade ? ' active' : '');
-    btn.textContent = `${grade}°`;
-    btn.onclick = () => {
-      currentGrade = grade;
-      document.getElementById('current-grade-label').textContent = `${grade}°`;
-      document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      buildTable();
-    };
-    container.appendChild(btn);
-  });
+  
+  // Si es admin, mostrar todos los grados
+  if (currentUser.isAdmin) {
+    ['6','7','8','9','10','11'].forEach(grade => {
+      const btn = document.createElement('button');
+      btn.className = 'grade-btn' + (currentGrade === grade ? ' active' : '');
+      btn.textContent = `${grade}°`;
+      btn.onclick = () => {
+        currentGrade = grade;
+        document.getElementById('current-grade-label').textContent = `${grade}°`;
+        document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        buildTable();
+      };
+      container.appendChild(btn);
+    });
+  } else {
+    // Si no es admin, solo mostrar su grado (no editable)
+    const gradeDisplay = document.createElement('div');
+    gradeDisplay.className = 'grade-btn active';
+    gradeDisplay.textContent = `${currentUser.grade}°`;
+    gradeDisplay.style.cursor = 'default';
+    gradeDisplay.style.opacity = '0.9';
+    container.appendChild(gradeDisplay);
+  }
+  
   document.getElementById('current-grade-label').textContent = `${currentGrade}°`;
   if (currentUser.isAdmin) document.getElementById('events-panel').classList.remove('hidden');
 }
