@@ -616,7 +616,6 @@ let _currentGrade = '11';
 let currentWeek = 1;
 let allData = {};
 let allEvents = [];
-let users = {};
 
 // Getter y setter para currentGrade para controlar acceso
 Object.defineProperty(window, 'currentGrade', {
@@ -779,14 +778,11 @@ function showToast(msg, type = 'update') {
 }
 
 function initAuth() {
+  // La lista de cuentas ya NO vive en localStorage: ahora vive en
+  // Supabase (tabla public.app_users), compartida por todos. Aqui
+  // solo recordamos, en este dispositivo, cual cuenta quedo con la
+  // sesion abierta la ultima vez (para no pedir login cada rato).
   const savedUser = localStorage.getItem('horarioUser');
-  const savedUsers = localStorage.getItem('horarioUsers');
-
-  if (savedUsers) users = JSON.parse(savedUsers);
-  else {
-    users = { 'admin': { password: 'admin123', grade: 'all', isAdmin: true } };
-    saveUsers();
-  }
 
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
@@ -796,8 +792,6 @@ function initAuth() {
     showAuth();
   }
 }
-
-function saveUsers() { localStorage.setItem('horarioUsers', JSON.stringify(users)); }
 
 function showAuth() {
   document.getElementById('auth-container').classList.remove('hidden');
@@ -814,30 +808,54 @@ function showRegister() {
   document.getElementById('login-card').classList.add('hidden');
 }
 
-function handleRegister() {
+async function handleRegister() {
   const username = document.getElementById('register-username').value.trim();
   const password = document.getElementById('register-password').value.trim();
   const grade = document.getElementById('register-grade').value;
   if (!username || !password) { showToast('Completa todos los campos', 'error'); return; }
-  if (users[username]) { showToast('El usuario ya existe', 'error'); return; }
-  users[username] = { password, grade, isAdmin: false };
-  saveUsers();
-  showToast('Cuenta creada exitosamente!');
-  showLogin();
-  document.getElementById('register-username').value = '';
-  document.getElementById('register-password').value = '';
+
+  const btn = document.querySelector('#register-card .btn-primary');
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.rpc('register_user', {
+      p_username: username,
+      p_password: password,
+      p_grade: grade
+    });
+    if (error) { showToast('No se pudo crear la cuenta (error de conexion)', 'error'); return; }
+    if (!data || !data.ok) { showToast(data?.error || 'No se pudo crear la cuenta', 'error'); return; }
+
+    showToast('Cuenta creada exitosamente! Ya puedes iniciar sesion desde cualquier dispositivo.');
+    showLogin();
+    document.getElementById('register-username').value = '';
+    document.getElementById('register-password').value = '';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
-function handleLogin() {
+async function handleLogin() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value.trim();
   if (!username || !password) { showToast('Completa todos los campos', 'error'); return; }
-  const user = users[username];
-  if (!user || user.password !== password) { showToast('Usuario o contraseña incorrectos', 'error'); return; }
-  currentUser = { username, grade: user.grade, isAdmin: user.isAdmin };
-  localStorage.setItem('horarioUser', JSON.stringify(currentUser));
-  _currentGrade = user.grade === 'all' ? '11' : user.grade;
-  showApp();
+
+  const btn = document.querySelector('#login-card .btn-primary');
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.rpc('login_user', {
+      p_username: username,
+      p_password: password
+    });
+    if (error) { showToast('No se pudo iniciar sesion (error de conexion)', 'error'); return; }
+    if (!data || !data.ok) { showToast(data?.error || 'Usuario o contraseña incorrectos', 'error'); return; }
+
+    currentUser = { username: data.username, grade: data.grade, isAdmin: data.is_admin };
+    localStorage.setItem('horarioUser', JSON.stringify(currentUser));
+    _currentGrade = data.grade === 'all' ? '11' : data.grade;
+    showApp();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function handleLogout() {
