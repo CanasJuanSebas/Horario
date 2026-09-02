@@ -144,7 +144,13 @@ as $$
 declare
   v_subject text;
   v_is_new boolean;
+  v_is_postpone boolean;
   v_meaningful_change boolean;
+  v_type text;
+  v_noun text;
+  v_gender text; -- 'f' = femenino (tarea), 'm' = masculino (examen/reclamo)
+  v_icon text;
+  v_title text;
 begin
   if TG_OP = 'DELETE' then
     return old;
@@ -155,6 +161,11 @@ begin
   end if;
 
   v_is_new := (TG_OP = 'INSERT');
+  -- El flujo de "Aplazar" en la app borra la fila vieja y crea una
+  -- nueva, marcando las notas con este prefijo; asi lo distinguimos
+  -- de una tarea realmente nueva.
+  v_is_postpone := v_is_new and NEW.notes ilike 'Aplazada para las%';
+
   v_meaningful_change :=
     v_is_new
     or (OLD.task is distinct from NEW.task)
@@ -168,10 +179,25 @@ begin
   end if;
 
   v_subject := coalesce(public.subject_name(NEW.cell_key), 'Materia');
+  v_type := coalesce(NEW.type, 'tarea');
+
+  case v_type
+    when 'examen'  then v_noun := 'examen';  v_gender := 'm'; v_icon := '📝';
+    when 'reclamo' then v_noun := 'reclamo'; v_gender := 'm'; v_icon := '🚩';
+    else                v_noun := 'tarea';   v_gender := 'f'; v_icon := '📌';
+  end case;
+
+  if v_is_postpone then
+    v_title := '📆 ' || initcap(v_noun) || (case when v_gender = 'f' then ' aplazada: ' else ' aplazado: ' end) || v_subject;
+  elsif v_is_new then
+    v_title := v_icon || ' ' || (case when v_gender = 'f' then 'Nueva ' else 'Nuevo ' end) || v_noun || ': ' || v_subject;
+  else
+    v_title := '✏️ ' || initcap(v_noun) || (case when v_gender = 'f' then ' modificada: ' else ' modificado: ' end) || v_subject;
+  end if;
 
   perform private.notify_push(jsonb_build_object(
-    'title', case when v_is_new then '📌 Nueva tarea: ' || v_subject else '✏️ Tarea actualizada: ' || v_subject end,
-    'body', NEW.task || case when NEW.due_date is not null then (E'\nEntrega: ' || to_char(NEW.due_date, 'DD/MM/YYYY')) else '' end,
+    'title', v_title,
+    'body', NEW.task || case when NEW.due_date is not null then (E'\nPlazo: ' || to_char(NEW.due_date, 'DD/MM/YYYY')) else '' end,
     'tag', 'task-' || NEW.cell_key,
     'urgency', 'high',
     'url', './'
@@ -222,7 +248,7 @@ begin
 
   perform private.notify_push(jsonb_build_object(
     'title', '🔔 Empieza ' || v_subject,
-    'body', 'Tienes tarea pendiente: ' || v_row.task,
+    'body', 'Tienes ' || coalesce(v_row.type, 'tarea') || ' pendiente: ' || v_row.task,
     'tag', 'class-' || v_key,
     'urgency', 'high',
     'url', './'
@@ -260,7 +286,7 @@ begin
     order by cell_key
   loop
     v_subject := coalesce(public.subject_name(r.cell_key), 'Materia');
-    v_lines := v_lines || '• ' || v_subject || ': ' || r.task || E'\n';
+    v_lines := v_lines || '• [' || upper(coalesce(r.type, 'tarea')) || '] ' || v_subject || ': ' || r.task || E'\n';
     v_count := v_count + 1;
   end loop;
 
