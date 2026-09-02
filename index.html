@@ -777,20 +777,44 @@ function showToast(msg, type = 'update') {
   setTimeout(() => t.remove(), type === 'error' ? 6000 : 4000);
 }
 
-function initAuth() {
-  // La lista de cuentas ya NO vive en localStorage: ahora vive en
-  // Supabase (tabla public.app_users), compartida por todos. Aqui
-  // solo recordamos, en este dispositivo, cual cuenta quedo con la
-  // sesion abierta la ultima vez (para no pedir login cada rato).
-  const savedUser = localStorage.getItem('horarioUser');
+async function initAuth() {
+  // El inicio de sesion SIEMPRE se valida contra Supabase, nunca solo
+  // contra localStorage. Aqui solo guardamos usuario/contraseña de este
+  // dispositivo para no pedirlos cada vez, pero antes de mostrar la app
+  // se vuelven a verificar con la funcion login_user() en Supabase; si
+  // la cuenta ya no existe o la contraseña cambio, se pide login de nuevo.
+  const savedCreds = localStorage.getItem('horarioCreds');
 
-  if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    _currentGrade = currentUser.grade === 'all' ? '11' : currentUser.grade;
-    showApp();
-  } else {
-    showAuth();
+  if (savedCreds) {
+    let parsed = null;
+    try { parsed = JSON.parse(savedCreds); } catch (e) { parsed = null; }
+
+    if (parsed && parsed.username && parsed.password) {
+      setConnectionStatus('connecting');
+      const { data, error } = await withRetry(() => supabaseClient.rpc('login_user', {
+        p_username: parsed.username,
+        p_password: parsed.password
+      }));
+
+      if (!error && data && data.ok) {
+        currentUser = { username: data.username, grade: data.grade, isAdmin: data.is_admin };
+        _currentGrade = currentUser.grade === 'all' ? '11' : currentUser.grade;
+        showApp();
+        return;
+      }
+
+      // Credenciales invalidas (cuenta borrada / contraseña cambiada) o
+      // no se pudo confirmar con Supabase: se limpia y se pide login.
+      localStorage.removeItem('horarioCreds');
+      if (error && isNetworkError(error)) {
+        showToast('No se pudo verificar la sesion (sin conexion). Inicia sesion de nuevo.', 'error');
+      }
+    } else {
+      localStorage.removeItem('horarioCreds');
+    }
   }
+
+  showAuth();
 }
 
 function showAuth() {
@@ -850,7 +874,10 @@ async function handleLogin() {
     if (!data || !data.ok) { showToast(data?.error || 'Usuario o contraseña incorrectos', 'error'); return; }
 
     currentUser = { username: data.username, grade: data.grade, isAdmin: data.is_admin };
-    localStorage.setItem('horarioUser', JSON.stringify(currentUser));
+    // Solo se guarda usuario/contraseña para volver a validar con Supabase
+    // en la proxima visita (ver initAuth). Los datos de la cuenta (grado,
+    // si es admin, etc.) NUNCA se leen de localStorage, siempre de Supabase.
+    localStorage.setItem('horarioCreds', JSON.stringify({ username, password }));
     _currentGrade = data.grade === 'all' ? '11' : data.grade;
     showApp();
   } finally {
@@ -860,7 +887,7 @@ async function handleLogin() {
 
 function handleLogout() {
   currentUser = null;
-  localStorage.removeItem('horarioUser');
+  localStorage.removeItem('horarioCreds');
   showAuth();
 }
 
