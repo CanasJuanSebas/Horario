@@ -273,33 +273,41 @@ body.dark-mode .tasks-panel h2,body.dark-mode .events-panel h2,body.dark-mode .l
 .task-card.log .tc-mat{color:var(--forest)}
 body.dark-mode .task-card.log .tc-mat{color:#dcead5}
 .tc-day{font-size:10.5px;font-family:'JetBrains Mono',monospace;font-weight:600}
-.task-card.reg .tc-day{color:#8a5f0c}
+.task-card.reg .tc-day{color:var(--y-tx)}
 .task-card.reg-red .tc-day{color:var(--r-tx)}
 .task-card.reg-blue .tc-day{color:var(--e-tx)}
-.task-card.mil .tc-day{color:#1e5477}
+.task-card.mil .tc-day{color:var(--b-tx)}
 .task-card.log .tc-day{color:var(--tx2)}
 .tc-desc{font-size:12.5px;margin-top:6px;line-height:1.5}
-.task-card.reg .tc-desc{color:#5a3f06}
+.task-card.reg .tc-desc{color:var(--y-tx)}
 .task-card.reg-red .tc-desc{color:var(--r-tx)}
 .task-card.reg-blue .tc-desc{color:var(--e-tx)}
-.task-card.mil .tc-desc{color:#12283a}
+.task-card.mil .tc-desc{color:var(--b-tx)}
 .task-card.log .tc-desc{color:var(--tx2)}
 .tc-due{font-size:10.5px;margin-top:5px;font-weight:600}
-.task-card.reg .tc-due{color:#8a5f0c}
+.task-card.reg .tc-due{color:var(--y-tx)}
 .task-card.reg-red .tc-due{color:var(--r-tx)}
 .task-card.reg-blue .tc-due{color:var(--e-tx)}
-.task-card.mil .tc-due{color:#1e5477}
-.tc-instructor{font-size:11px;margin-top:4px;color:#1e5477;font-style:italic}
+.task-card.mil .tc-due{color:var(--b-tx)}
+.tc-instructor{font-size:11px;margin-top:4px;color:var(--b-tx);font-style:italic}
 
 .tc-actions{display:flex;gap:6px;margin-top:11px;border-top:1px solid rgba(0,0,0,.08);padding-top:11px}
 .btn-status{
   flex:1;padding:6px;font-size:9.5px;font-weight:700;border-radius:5px;border:1.5px solid var(--bd);
-  background:var(--sf);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.3px;
+  background:var(--sf);color:var(--tx);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.3px;
 }
 .btn-status:hover{filter:brightness(.95)}
 .btn-status.active-delivered{background:var(--forest);color:#f2ead9;border-color:var(--forest-deep)}
 .btn-status.active-missing{background:#7c2418;color:#fff;border-color:#5c1a10}
 .btn-status.active-postponed{background:var(--brass-deep);color:#fff;border-color:#5f4620}
+
+/* Modo oscuro: tarjetas más grises/apagadas (no "neón") y botones con más contraste */
+body.dark-mode .task-card.reg{background:var(--sf2);border-color:var(--y-br)}
+body.dark-mode .task-card.reg-red{background:var(--sf2);border-color:var(--r-br)}
+body.dark-mode .task-card.reg-blue{background:var(--sf2);border-color:var(--e-br)}
+body.dark-mode .task-card.mil{background:var(--sf2);border-color:var(--b-br)}
+body.dark-mode .btn-status{background:var(--sf3);border-color:var(--tx3);color:var(--tx)}
+body.dark-mode .btn-status:hover{background:var(--bd);filter:none}
 
 .task-card.status-delivered{opacity:.55;filter:grayscale(.4)}
 .task-card.status-delivered .tc-desc{text-decoration:line-through}
@@ -1034,6 +1042,19 @@ function getUserKey() {
   return currentUser ? currentUser.username : 'anonymous';
 }
 
+function cellLabel(cellKey, grade) {
+  if (!cellKey) return '—';
+  if (cellKey.startsWith('mil-')) {
+    const col = parseInt(cellKey.split('-')[1], 10);
+    return `Fase Militar (${DAYS[col] || '?'})`;
+  }
+  const [blockIdx, col] = cellKey.split('-');
+  const mats = GRADE_SCHEDULES[grade] || GRADE_SCHEDULES['11'];
+  const subject = mats[cellKey] || 'Materia';
+  const day = DAYS[parseInt(col, 10)] || '?';
+  return `${subject} (${day})`;
+}
+
 function isExpired(due) {
   if (!due) return false;
   return new Date(due+'T23:59:59') < new Date();
@@ -1430,7 +1451,7 @@ async function loadAuditLogs() {
     const label = actionLabel[l.action] || l.action;
     const taskText = (l.new_data && l.new_data.task) || (l.old_data && l.old_data.task) || '';
     return `<div class="task-card log">
-      <div class="tc-header"><span class="tc-mat">${label} · ${l.cell_key || ''}</span><span class="tc-day">${when}</span></div>
+      <div class="tc-header"><span class="tc-mat">${label} · ${cellLabel(l.cell_key, l.grade)}</span><span class="tc-day">${when}</span></div>
       <div class="tc-desc">Usuario: <b>${l.username || '—'}</b> · Grado ${l.grade || '?'}° · Semana ${l.week_number || '?'}</div>
       ${taskText ? `<div class="tc-desc">"${taskText}"</div>` : ''}
     </div>`;
