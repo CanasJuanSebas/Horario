@@ -246,16 +246,16 @@ thead th.fri-head{background:var(--brass-deep);color:#f6ecd6}
 }
 body.dark-mode .event-badge{background:var(--brass-deep);color:#f6ecd6}
 
-/* ---------- PANEL DE TAREAS / EVENTOS ---------- */
-.tasks-panel,.events-panel{
+/* ---------- PANEL DE TAREAS / EVENTOS / LOGS ---------- */
+.tasks-panel,.events-panel,.logs-panel{
   margin-top:22px;background:var(--sf);border:1.5px solid var(--bd);border-radius:var(--rad);
   padding:20px 22px;box-shadow:0 8px 22px -16px rgba(18,38,26,.4);
 }
-.tasks-panel h2,.events-panel h2{
+.tasks-panel h2,.events-panel h2,.logs-panel h2{
   font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;margin-bottom:15px;color:var(--forest);
   display:flex;justify-content:space-between;align-items:center;
 }
-body.dark-mode .tasks-panel h2,body.dark-mode .events-panel h2{color:#dcead5}
+body.dark-mode .tasks-panel h2,body.dark-mode .events-panel h2,body.dark-mode .logs-panel h2{color:#dcead5}
 
 .task-cards{display:flex;flex-direction:column;gap:10px}
 .task-card{border-radius:var(--rad-s);padding:12px 15px;border-left-width:4px;border-left-style:solid}
@@ -263,22 +263,27 @@ body.dark-mode .tasks-panel h2,body.dark-mode .events-panel h2{color:#dcead5}
 .task-card.reg-red{background:var(--r-bg);border:1.5px solid var(--r-br);border-left-width:4px}
 .task-card.reg-blue{background:var(--e-bg);border:1.5px solid var(--e-br);border-left-width:4px}
 .task-card.mil{background:var(--b-bg);border:1.5px solid var(--b-br);border-left-width:4px}
+.task-card.log{background:var(--sf2);border:1.5px solid var(--bd);border-left-width:4px;border-left-color:var(--brass)}
 .tc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
 .tc-mat{font-size:13px;font-weight:700}
 .task-card.reg .tc-mat{color:var(--y-tx)}
 .task-card.reg-red .tc-mat{color:var(--r-tx)}
 .task-card.reg-blue .tc-mat{color:var(--e-tx)}
 .task-card.mil .tc-mat{color:var(--b-tx)}
+.task-card.log .tc-mat{color:var(--forest)}
+body.dark-mode .task-card.log .tc-mat{color:#dcead5}
 .tc-day{font-size:10.5px;font-family:'JetBrains Mono',monospace;font-weight:600}
 .task-card.reg .tc-day{color:#8a5f0c}
 .task-card.reg-red .tc-day{color:var(--r-tx)}
 .task-card.reg-blue .tc-day{color:var(--e-tx)}
 .task-card.mil .tc-day{color:#1e5477}
+.task-card.log .tc-day{color:var(--tx2)}
 .tc-desc{font-size:12.5px;margin-top:6px;line-height:1.5}
 .task-card.reg .tc-desc{color:#5a3f06}
 .task-card.reg-red .tc-desc{color:var(--r-tx)}
 .task-card.reg-blue .tc-desc{color:var(--e-tx)}
 .task-card.mil .tc-desc{color:#12283a}
+.task-card.log .tc-desc{color:var(--tx2)}
 .tc-due{font-size:10.5px;margin-top:5px;font-weight:600}
 .task-card.reg .tc-due{color:#8a5f0c}
 .task-card.reg-red .tc-due{color:var(--r-tx)}
@@ -319,6 +324,16 @@ body.dark-mode .event-name{color:#dcead5}
 .btn-icon{border:1.5px solid var(--bd);background:var(--sf);border-radius:var(--rad-s);padding:5px 9px;cursor:pointer;font-size:13px;transition:background .12s}
 .btn-icon:hover{background:var(--sf3)}
 
+/* ---------- FILA DE TAREAS EXTRA (con plazo activo) ---------- */
+.extra-tasks-row .cell{cursor:default}
+.extra-tasks-row .cell:hover{filter:none;transform:none}
+.extra-badge{
+  display:block;padding:3px 7px;border-radius:5px;font-size:9.5px;font-weight:700;margin-bottom:4px;color:#2b2313;
+}
+.extra-badge.tarea{background:var(--y-br);color:#3a2900}
+.extra-badge.examen{background:var(--e-br);color:#fff}
+.extra-badge.reclamo{background:var(--r-br);color:#fff}
+
 /* ---------- MODALES ---------- */
 .overlay{display:none;position:fixed;inset:0;background:rgba(18,15,10,.5);z-index:300;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
 .overlay.open{display:flex}
@@ -354,6 +369,10 @@ body.dark-mode .modal h3{color:#dcead5}
 .btn.danger:hover{background:#fbe9e5}
 body.dark-mode .btn.danger:hover{background:#3d160f}
 .divider{height:1px;background:var(--bd);margin:15px 0}
+
+.plazo-choice{display:flex;gap:16px;margin:2px 0 10px}
+.plazo-choice label{display:flex;align-items:center;gap:6px;font-weight:500;text-transform:none;font-size:13px;color:var(--tx);margin:0;cursor:pointer}
+.plazo-choice input[type=radio]{width:auto}
 
 /* ---------- TOASTS ---------- */
 #toast-container{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px;max-width:320px}
@@ -493,6 +512,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   <div id="events-list" class="event-list"></div>
 </div>
 
+<div class="logs-panel hidden" id="logs-panel">
+  <h2>🗂️ Registro de Cambios (Admin) <button class="add-event-btn" onclick="loadAuditLogs()">↻ Actualizar</button></h2>
+  <div id="logs-list"></div>
+</div>
+
 <div class="tasks-panel">
   <h2>📌 Tareas — <span id="tasks-week-label"></span></h2>
   <div id="tasks-list"></div>
@@ -517,8 +541,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
       <div id="reg-type-badge" style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-bottom:10px;text-transform:uppercase"></div>
       <label id="label-desc">Descripción</label>
       <textarea id="rm-task" placeholder="Escribe aquí los detalles..."></textarea>
-      <label>Fecha de entrega</label>
-      <input type="date" id="rm-due">
+      <label>¿Tiene plazo?</label>
+      <div class="plazo-choice">
+        <label><input type="radio" name="rm-has-due" id="rm-has-due-si"> Sí</label>
+        <label><input type="radio" name="rm-has-due" id="rm-has-due-no"> No</label>
+      </div>
+      <div id="rm-due-wrap">
+        <label>Plazo (fecha límite)</label>
+        <input type="date" id="rm-due">
+      </div>
       <div class="divider"></div>
       <label>Notas generales (no cambian el color)</label>
       <textarea id="rm-notes" placeholder="Notas, recordatorios, etc..."></textarea>
@@ -555,8 +586,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
     <div class="divider"></div>
     <label>Tarea</label>
     <textarea id="mm-task" placeholder=""></textarea>
-    <label>Fecha de entrega</label>
-    <input type="date" id="mm-due">
+    <label>¿Tiene plazo?</label>
+    <div class="plazo-choice">
+      <label><input type="radio" name="mm-has-due" id="mm-has-due-si"> Sí</label>
+      <label><input type="radio" name="mm-has-due" id="mm-has-due-no"> No</label>
+    </div>
+    <div id="mm-due-wrap">
+      <label>Plazo (fecha límite)</label>
+      <input type="date" id="mm-due">
+    </div>
     <div class="modal-btns">
       <button class="btn danger" id="mm-clear">Borrar todo</button>
       <button class="btn" id="mm-cancel">Cancelar</button>
@@ -945,7 +983,11 @@ function initGradeSelector() {
   }
   
   document.getElementById('current-grade-label').textContent = `${currentGrade}°`;
-  if (currentUser.isAdmin) document.getElementById('events-panel').classList.remove('hidden');
+  if (currentUser.isAdmin) {
+    document.getElementById('events-panel').classList.remove('hidden');
+    document.getElementById('logs-panel').classList.remove('hidden');
+    loadAuditLogs();
+  }
 }
 
 const ANCHOR_WEEK = 21;
@@ -1092,6 +1134,36 @@ function deleteEvent(idx) {
   allEvents.splice(idx,1); saveEvents(); buildEventsList(); buildTable(); showToast('Evento eliminado');
 }
 
+function computeExtraTasksByColumn() {
+  const byCol = [[], [], [], [], []];
+  const mats = getCurrentMats();
+  Object.keys(allData).forEach(gwKey => {
+    const sep = gwKey.lastIndexOf('-');
+    const grade = gwKey.slice(0, sep);
+    const week = parseInt(gwKey.slice(sep + 1));
+    if (grade !== currentGrade || isNaN(week)) return;
+    const wd = allData[gwKey];
+    Object.keys(wd).forEach(cellKey => {
+      const entry = wd[cellKey];
+      if (!entry || !entry.task || !entry.task.trim() || !entry.due) return;
+      const isMil = cellKey.startsWith('mil-');
+      const parts = cellKey.split('-');
+      const originCol = parseInt(parts[1]);
+      if (isNaN(originCol) || originCol < 0 || originCol > 4) return;
+      const originDate = getDayDate(week, originCol);
+      if (entry.due < originDate) return; // plazo ya vencido antes de asignarse
+      for (let col = 0; col < 5; col++) {
+        const dateStr = getDayDate(currentWeek, col);
+        if (dateStr === originDate) continue; // ya se ve en su propia celda
+        if (dateStr < originDate || dateStr > entry.due) continue;
+        const subject = isMil ? 'Fase Militar' : (mats[cellKey] || 'Materia');
+        byCol[col].push({ subject, task: entry.task, type: entry.type || 'tarea' });
+      }
+    });
+  });
+  return byCol;
+}
+
 function buildTable() {
   document.getElementById('week-num').textContent = `Semana ${currentWeek}`;
   document.getElementById('week-dates').textContent = getWeekDates(currentWeek);
@@ -1109,6 +1181,25 @@ function buildTable() {
 
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
+
+  // Fila de tareas con plazo activo que no son del día actual de la celda
+  const extraByCol = computeExtraTasksByColumn();
+  if (extraByCol.some(arr => arr.length)) {
+    const exTr = document.createElement('tr');
+    exTr.className = 'extra-tasks-row';
+    const labelTd = document.createElement('td');
+    labelTd.className = 'time-cell';
+    labelTd.textContent = '⏳\nPlazos';
+    exTr.appendChild(labelTd);
+    for (let col = 0; col < 5; col++) {
+      const td = document.createElement('td');
+      td.className = 'cell';
+      const items = extraByCol[col];
+      td.innerHTML = items.map(it => `<span class="extra-badge ${it.type}">⏳ ${it.subject}: ${it.task}</span>`).join('');
+      exTr.appendChild(td);
+    }
+    tbody.appendChild(exTr);
+  }
 
   BLOCKS.forEach(block => {
     const tr = document.createElement('tr');
@@ -1308,14 +1399,52 @@ function buildTaskList() {
   }).join('') + '</div>';
 }
 
+async function logAudit(action, key, week, grade, oldData, newData) {
+  try {
+    await withRetry(() => supabaseClient.from('audit_logs').insert({
+      cell_key: key,
+      action,
+      old_data: oldData || null,
+      new_data: newData || null,
+      week_number: week,
+      grade,
+      username: getUserKey(),
+      timestamp: new Date().toISOString()
+    }));
+  } catch (e) { console.error('No se pudo registrar el log:', e); }
+}
+
+async function loadAuditLogs() {
+  if (!currentUser || !currentUser.isAdmin) return;
+  const list = document.getElementById('logs-list');
+  if (!list) return;
+  list.innerHTML = '<div class="no-tasks">Cargando...</div>';
+  const { data, error } = await withRetry(() => supabaseClient
+    .from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(150));
+  if (error) { list.innerHTML = '<div class="no-tasks">No se pudieron cargar los logs</div>'; return; }
+  if (!data || !data.length) { list.innerHTML = '<div class="no-tasks">Sin registros todavía</div>'; return; }
+  const actionLabel = { crear: '🆕 Creó', actualizar: '✏️ Actualizó', borrar: '🗑️ Borró' };
+  list.innerHTML = '<div class="task-cards">' + data.map(l => {
+    const when = l.timestamp ? new Date(l.timestamp).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    const label = actionLabel[l.action] || l.action;
+    const taskText = (l.new_data && l.new_data.task) || (l.old_data && l.old_data.task) || '';
+    return `<div class="task-card log">
+      <div class="tc-header"><span class="tc-mat">${label} · ${l.cell_key || ''}</span><span class="tc-day">${when}</span></div>
+      <div class="tc-desc">Usuario: <b>${l.username || '—'}</b> · Grado ${l.grade || '?'}° · Semana ${l.week_number || '?'}</div>
+      ${taskText ? `<div class="tc-desc">"${taskText}"</div>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+}
+
 async function updateTaskStatus(key, status) {
   const wd = weekData();
   if (!wd[key]) return;
   if (status === 'aplazada' && currentUser.isAdmin) { openPostponeModal(key); return; }
+  const oldEntry = JSON.parse(JSON.stringify(wd[key]));
   if (!wd[key].userStatus) wd[key].userStatus = {};
   if (wd[key].userStatus[getUserKey()] === status) wd[key].userStatus[getUserKey()] = 'pendiente';
   else wd[key].userStatus[getUserKey()] = status;
-  await saveToDB(key, wd[key]);
+  await saveToDB(key, wd[key], currentWeek, currentGrade, oldEntry);
   buildTable();
 }
 
@@ -1346,6 +1475,7 @@ document.getElementById('postpone-save').onclick = async () => {
   const newTime = document.getElementById('postpone-time').value;
   const wd = weekData();
   if (wd[postponeKey] && newDueStr) {
+    const trueOld = JSON.parse(JSON.stringify(wd[postponeKey]));
     const entry = {...wd[postponeKey]};
     const oldWeek = currentWeek;
     const oldKey = postponeKey;
@@ -1369,11 +1499,11 @@ document.getElementById('postpone-save').onclick = async () => {
     entry.notes = `Aplazada para las ${newTime}. ${entry.notes}`;
 
     delete allData[`${oldGrade}-${oldWeek}`][oldKey];
-    await deleteFromDB(oldKey, oldWeek, oldGrade);
+    await deleteFromDB(oldKey, oldWeek, oldGrade, trueOld);
 
     if (!allData[`${oldGrade}-${targetWeek}`]) allData[`${oldGrade}-${targetWeek}`] = {};
     allData[`${oldGrade}-${targetWeek}`][targetKey] = entry;
-    await saveToDB(targetKey, entry, targetWeek, oldGrade);
+    await saveToDB(targetKey, entry, targetWeek, oldGrade, null);
 
     document.getElementById('overlay-postpone').classList.remove('open');
     buildTable();
@@ -1389,14 +1519,26 @@ document.getElementById('next-week').onclick = () => { currentWeek++; buildTable
 let regKey = null;
 let currentRegType = 'tarea';
 
+function setPlazoUI(prefix, hasDue, dueVal) {
+  document.getElementById(`${prefix}-has-due-si`).checked = hasDue;
+  document.getElementById(`${prefix}-has-due-no`).checked = !hasDue;
+  document.getElementById(`${prefix}-due-wrap`).style.display = hasDue ? 'block' : 'none';
+  document.getElementById(`${prefix}-due`).value = dueVal || '';
+}
+
+document.getElementById('rm-has-due-si').onchange = () => { document.getElementById('rm-due-wrap').style.display = 'block'; };
+document.getElementById('rm-has-due-no').onchange = () => { document.getElementById('rm-due-wrap').style.display = 'none'; document.getElementById('rm-due').value = ''; };
+document.getElementById('mm-has-due-si').onchange = () => { document.getElementById('mm-due-wrap').style.display = 'block'; };
+document.getElementById('mm-has-due-no').onchange = () => { document.getElementById('mm-due-wrap').style.display = 'none'; document.getElementById('mm-due').value = ''; };
+
 function openRegModal(key, mat, day, time) {
   regKey = key;
   const entry = weekData()[key] || {};
   document.getElementById('rm-mat').textContent = mat;
   document.getElementById('rm-sub').textContent = `${day} · ${time} — Semana ${currentWeek} (${getDayDate(currentWeek, DAYS.indexOf(day))})`;
   document.getElementById('rm-task').value = entry.task || '';
-  document.getElementById('rm-due').value = entry.due || '';
   document.getElementById('rm-notes').value = entry.notes || '';
+  setPlazoUI('rm', !!entry.due, entry.due);
   if (!entry.task && !entry.notes) {
     document.getElementById('reg-flow-type').style.display = 'block';
     document.getElementById('reg-details').style.display = 'none';
@@ -1429,17 +1571,20 @@ document.getElementById('overlay-reg').onclick = (e) => { if (e.target === docum
 
 document.getElementById('rm-save').onclick = async () => {
   const task = document.getElementById('rm-task').value.trim();
-  const due = document.getElementById('rm-due').value;
+  const hasDue = document.getElementById('rm-has-due-si').checked;
+  const due = hasDue ? document.getElementById('rm-due').value : '';
+  if (hasDue && !due) { showToast('Selecciona la fecha del plazo, o marca "No"', 'error'); return; }
   const notes = document.getElementById('rm-notes').value.trim();
   const wd = weekData();
   const existingEntry = wd[regKey] || {};
+  const oldEntry = wd[regKey] ? JSON.parse(JSON.stringify(wd[regKey])) : null;
   const entry = (task || notes) ? {
     ...existingEntry,
     task, due, type: currentRegType, notes,
     reclamoUser: currentRegType === 'reclamo' ? getUserKey() : existingEntry.reclamoUser
   } : null;
   if (entry) wd[regKey] = entry; else delete wd[regKey];
-  await saveToDB(regKey, entry);
+  await saveToDB(regKey, entry, currentWeek, currentGrade, oldEntry);
   document.getElementById('overlay-reg').classList.remove('open');
   buildTable();
   const toastType = currentRegType === 'reclamo' ? 'reclamo' : (currentRegType === 'examen' ? 'examen' : 'task');
@@ -1447,7 +1592,8 @@ document.getElementById('rm-save').onclick = async () => {
 };
 
 document.getElementById('rm-clear').onclick = async () => {
-  delete weekData()[regKey]; await deleteFromDB(regKey);
+  const oldEntry = weekData()[regKey] ? JSON.parse(JSON.stringify(weekData()[regKey])) : null;
+  delete weekData()[regKey]; await deleteFromDB(regKey, currentWeek, currentGrade, oldEntry);
   document.getElementById('overlay-reg').classList.remove('open'); buildTable();
 };
 
@@ -1459,7 +1605,7 @@ function openMilModal(key, day) {
   document.getElementById('mm-sub').textContent = `${day} · 2:30 – 4:00 p.m. — Semana ${currentWeek} (${getDayDate(currentWeek, colIdx)})`;
   document.getElementById('mm-instructor').value = entry.instructor || '';
   document.getElementById('mm-task').value = entry.task || '';
-  document.getElementById('mm-due').value = entry.due || '';
+  setPlazoUI('mm', !!entry.due, entry.due);
   document.getElementById('overlay-mil').classList.add('open');
   setTimeout(() => document.getElementById('mm-instructor').focus(),80);
 }
@@ -1468,17 +1614,21 @@ document.getElementById('overlay-mil').onclick = (e) => { if (e.target === docum
 document.getElementById('mm-save').onclick = async () => {
   const instructor = document.getElementById('mm-instructor').value.trim();
   const task = document.getElementById('mm-task').value.trim();
-  const due = document.getElementById('mm-due').value;
+  const hasDue = document.getElementById('mm-has-due-si').checked;
+  const due = hasDue ? document.getElementById('mm-due').value : '';
+  if (hasDue && !due) { showToast('Selecciona la fecha del plazo, o marca "No"', 'error'); return; }
   const wd = weekData();
   const existingEntry = wd[milKey] || {};
+  const oldEntry = wd[milKey] ? JSON.parse(JSON.stringify(wd[milKey])) : null;
   const entry = (instructor || task) ? { ...existingEntry, instructor, task, due } : null;
   if (entry) wd[milKey] = entry; else delete wd[milKey];
-  await saveToDB(milKey, entry);
+  await saveToDB(milKey, entry, currentWeek, currentGrade, oldEntry);
   document.getElementById('overlay-mil').classList.remove('open'); buildTable();
   showToast('Guardado exitosamente!', 'task');
 };
 document.getElementById('mm-clear').onclick = async () => {
-  delete weekData()[milKey]; await deleteFromDB(milKey);
+  const oldEntry = weekData()[milKey] ? JSON.parse(JSON.stringify(weekData()[milKey])) : null;
+  delete weekData()[milKey]; await deleteFromDB(milKey, currentWeek, currentGrade, oldEntry);
   document.getElementById('overlay-mil').classList.remove('open'); buildTable();
 };
 
@@ -1531,7 +1681,7 @@ async function initRealtime() {
     });
 }
 
-async function saveToDB(key, entry, week = currentWeek, grade = currentGrade) {
+async function saveToDB(key, entry, week = currentWeek, grade = currentGrade, oldEntry = null) {
   const formattedDate = (entry && entry.due && entry.due.trim() !== '') ? entry.due : null;
   const { error } = await withRetry(() => supabaseClient
     .from('schedules')
@@ -1543,16 +1693,24 @@ async function saveToDB(key, entry, week = currentWeek, grade = currentGrade) {
       reclamo_user: entry ? entry.reclamoUser : null, updated_at: new Date().toISOString()
     }, { onConflict: 'grade,week_number,cell_key' }));
   if (error) { setConnectionStatus('offline'); showToast(friendlyErrorMessage(error,'guardar'),'error'); }
-  else setConnectionStatus('online');
+  else {
+    setConnectionStatus('online');
+    logAudit(oldEntry ? 'actualizar' : 'crear', key, week, grade, oldEntry, entry);
+    if (currentUser && currentUser.isAdmin) loadAuditLogs();
+  }
 }
 
-async function deleteFromDB(key, week = currentWeek, grade = currentGrade) {
+async function deleteFromDB(key, week = currentWeek, grade = currentGrade, oldEntry = null) {
   const { error } = await withRetry(() => supabaseClient
     .from('schedules')
     .delete()
     .match({ grade, week_number: week, cell_key: key }));
   if (error) { setConnectionStatus('offline'); showToast(friendlyErrorMessage(error,'borrar'),'error'); }
-  else setConnectionStatus('online');
+  else {
+    setConnectionStatus('online');
+    logAudit('borrar', key, week, grade, oldEntry, null);
+    if (currentUser && currentUser.isAdmin) loadAuditLogs();
+  }
 }
 
 const VAPID_PUBLIC_KEY = 'BFLeJdUUDqGKu4Z6ew02VHWR66R9FzasPkYaMebTKx-TQyNxtHoz7owDxdscIGe-uQvbOd7WmuA-Av6khtvLi78';
