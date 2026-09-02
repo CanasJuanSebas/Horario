@@ -392,6 +392,7 @@ body.dark-mode .btn.danger:hover{background:#3d160f}
   background:var(--sf2);color:var(--tx);font-family:'Public Sans',sans-serif;font-size:12.5px;
 }
 .notas-table input[type=number]:focus,#notas-objetivo:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 2px rgba(31,61,43,.12)}
+.notas-table tr[style*="font-weight:600"] td{background:var(--sf3)}
 #notas-promedio{margin-top:10px;font-weight:700;color:var(--forest);font-family:'Fraunces',serif;font-size:15px}
 body.dark-mode #notas-promedio{color:#dcead5}
 #notas-objetivo-resultado{margin-top:9px;font-size:12.5px;line-height:1.5}
@@ -1694,7 +1695,7 @@ document.getElementById('mm-clear').onclick = async () => {
 /* ================= CALCULADOR DE NOTAS ================= */
 // Reemplaza esto con la URL real de tu backend en Render una vez desplegado
 // (el que genera main.py + Dockerfile), ej: "https://api-notas.onrender.com"
-const NOTAS_API_URL = 'https://pruebapaginaweb-qlq7.onrender.com';
+const NOTAS_API_URL = 'https://TU-BACKEND-EN-RENDER.onrender.com';
 
 function formatearErrorAPI(err) {
   // FastAPI puede devolver detail como:
@@ -1774,35 +1775,64 @@ function renderNotasResultado(detalle) {
   if (detalle.docente) html += `<div style="font-size:11.5px;color:var(--tx2);margin-top:2px">${detalle.docente}</div>`;
   html += `<div style="margin-top:6px;font-size:13px">Nota general reportada por Q10: <b>${detalle.nota_general}</b></div>`;
 
-  if (!detalle.subnotas || !detalle.subnotas.length) {
-    html += '<div class="no-tasks">Esta materia no tiene subnotas detalladas para este periodo.</div>';
+  if (!detalle.categorias || !detalle.categorias.length) {
+    html += '<div class="no-tasks">Esta materia no tiene el detalle de notas para este periodo.</div>';
     resultado.innerHTML = html;
     return;
   }
 
-  // Estado editable: parte de lo que trajo el backend, pero el usuario
-  // puede modificar cualquier nota (incluidas las que ya estaban puestas)
-  // para simular escenarios.
-  notasEditableState = detalle.subnotas.map(s => {
-    const pct = parseFloat((s.porcentaje || '').replace('%', '').replace(',', '.'));
-    const notaNum = parseFloat((s.nota || '').replace(',', '.'));
-    return {
-      nombre: s.nombre,
-      porcentaje: isNaN(pct) ? 0 : pct,
-      nota: isNaN(notaNum) ? null : notaNum
-    };
-  });
+  const parsePct = (s) => {
+    const n = parseFloat((s || '').replace('%', '').replace(',', '.'));
+    return isNaN(n) ? 0 : n;
+  };
+  const parseNota = (s) => {
+    const n = parseFloat((s || '').replace(',', '.'));
+    return isNaN(n) ? null : n;
+  };
 
-  html += '<div style="font-size:11px;color:var(--tx2);margin-top:8px">Puedes editar cualquier nota para simular escenarios.</div>';
+  // Estado editable con la jerarquía real: cada categoría pesa X% del
+  // TOTAL de la materia; si tiene sub-actividades, esas pesan X% de LA
+  // CATEGORÍA (no del total) — por eso nunca se suman directo con las
+  // demás categorías.
+  notasEditableState = detalle.categorias.map(cat => ({
+    nombre: cat.nombre,
+    porcentaje: parsePct(cat.porcentaje),
+    nota: parseNota(cat.nota),
+    subactividades: (cat.subactividades || []).map(sa => ({
+      nombre: sa.nombre,
+      porcentaje: parsePct(sa.porcentaje),
+      nota: parseNota(sa.nota)
+    }))
+  }));
+
+  html += '<div style="font-size:11px;color:var(--tx2);margin-top:8px">Puedes editar cualquier nota para simular escenarios. El % de cada actividad indentada es sobre SU categoría, no sobre el total.</div>';
   html += '<table class="notas-table"><tr><th>Actividad</th><th>%</th><th>Nota</th></tr>';
 
-  notasEditableState.forEach((s, idx) => {
-    const valorInicial = s.nota !== null ? s.nota : '';
-    html += `<tr>
-      <td>${s.nombre}</td>
-      <td>${s.porcentaje ? s.porcentaje + '%' : '-'}</td>
-      <td><input type="number" class="subnota-input" data-idx="${idx}" step="0.1" min="0" max="5" value="${valorInicial}" placeholder="-"></td>
-    </tr>`;
+  notasEditableState.forEach((cat, catIdx) => {
+    const tieneHijos = cat.subactividades && cat.subactividades.length > 0;
+
+    if (!tieneHijos) {
+      const valorInicial = cat.nota !== null ? cat.nota : '';
+      html += `<tr style="font-weight:600">
+        <td>${cat.nombre}</td>
+        <td>${cat.porcentaje ? cat.porcentaje + '%' : '-'}</td>
+        <td><input type="number" class="cat-input" data-cat="${catIdx}" step="0.1" min="0" max="5" value="${valorInicial}" placeholder="-"></td>
+      </tr>`;
+    } else {
+      html += `<tr style="font-weight:600">
+        <td>${cat.nombre}</td>
+        <td>${cat.porcentaje ? cat.porcentaje + '%' : '-'}</td>
+        <td><span id="cat-computed-${catIdx}">-</span></td>
+      </tr>`;
+      cat.subactividades.forEach((sa, saIdx) => {
+        const valorInicial = sa.nota !== null ? sa.nota : '';
+        html += `<tr>
+          <td style="padding-left:18px;color:var(--tx2)">» ${sa.nombre}</td>
+          <td>${sa.porcentaje ? sa.porcentaje + '%' : '-'}</td>
+          <td><input type="number" class="sub-input" data-cat="${catIdx}" data-sub="${saIdx}" step="0.1" min="0" max="5" value="${valorInicial}" placeholder="-"></td>
+        </tr>`;
+      });
+    }
   });
 
   html += '</table>';
@@ -1819,11 +1849,21 @@ function renderNotasResultado(detalle) {
 
   resultado.innerHTML = html;
 
-  resultado.querySelectorAll('.subnota-input').forEach(inp => {
+  resultado.querySelectorAll('.cat-input').forEach(inp => {
     inp.addEventListener('input', () => {
-      const idx = parseInt(inp.dataset.idx, 10);
+      const catIdx = parseInt(inp.dataset.cat, 10);
       const val = inp.value.trim();
-      notasEditableState[idx].nota = val === '' ? null : parseFloat(val.replace(',', '.'));
+      notasEditableState[catIdx].nota = val === '' ? null : parseFloat(val.replace(',', '.'));
+      actualizarPromedioEditable();
+    });
+  });
+
+  resultado.querySelectorAll('.sub-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const catIdx = parseInt(inp.dataset.cat, 10);
+      const subIdx = parseInt(inp.dataset.sub, 10);
+      const val = inp.value.trim();
+      notasEditableState[catIdx].subactividades[subIdx].nota = val === '' ? null : parseFloat(val.replace(',', '.'));
       actualizarPromedioEditable();
     });
   });
@@ -1833,16 +1873,54 @@ function renderNotasResultado(detalle) {
   actualizarPromedioEditable();
 }
 
+// Convierte la jerarquía (categorías + sub-actividades) en una lista PLANA
+// de items con su peso ABSOLUTO real sobre el total de la materia. Esto es
+// lo único que se necesita para calcular el promedio y la nota necesaria,
+// sin importar cuántos niveles tenga la tabla.
+function itemsPlanos() {
+  const items = [];
+  notasEditableState.forEach(cat => {
+    if (!cat.subactividades || cat.subactividades.length === 0) {
+      items.push({ pctAbs: cat.porcentaje, nota: cat.nota });
+    } else {
+      cat.subactividades.forEach(sa => {
+        // % de la sub-actividad es relativo a SU categoría (ej. 10% de un
+        // 80%) => peso real sobre el total = categoría% * subactividad%/100
+        items.push({ pctAbs: cat.porcentaje * (sa.porcentaje / 100), nota: sa.nota });
+      });
+    }
+  });
+  return items;
+}
+
 function actualizarPromedioEditable() {
   const cont = document.getElementById('notas-promedio');
   if (!cont) return;
 
+  // Actualiza el valor mostrado por categoría (solo para las que tienen
+  // sub-actividades, calculado en vivo a partir de sus hijos)
+  notasEditableState.forEach((cat, catIdx) => {
+    if (!cat.subactividades || cat.subactividades.length === 0) return;
+    const span = document.getElementById(`cat-computed-${catIdx}`);
+    if (!span) return;
+
+    let sumaPond = 0, sumaPctConocido = 0;
+    cat.subactividades.forEach(sa => {
+      if (sa.nota !== null && !isNaN(sa.nota)) {
+        sumaPond += (sa.porcentaje / 100) * sa.nota;
+        sumaPctConocido += sa.porcentaje;
+      }
+    });
+    span.textContent = sumaPctConocido > 0 ? (sumaPond * (100 / sumaPctConocido)).toFixed(2) : '-';
+  });
+
+  const items = itemsPlanos();
   let sumaPonderada = 0, sumaPorcentajesConocidos = 0, sumaPorcentajesTotal = 0;
-  notasEditableState.forEach(s => {
-    sumaPorcentajesTotal += s.porcentaje;
-    if (s.nota !== null && !isNaN(s.nota)) {
-      sumaPonderada += (s.porcentaje / 100) * s.nota;
-      sumaPorcentajesConocidos += s.porcentaje;
+  items.forEach(it => {
+    sumaPorcentajesTotal += it.pctAbs;
+    if (it.nota !== null && !isNaN(it.nota)) {
+      sumaPonderada += (it.pctAbs / 100) * it.nota;
+      sumaPorcentajesConocidos += it.pctAbs;
     }
   });
 
@@ -1852,7 +1930,7 @@ function actualizarPromedioEditable() {
   const promedioParcial = (sumaPonderada * (100 / sumaPorcentajesConocidos)).toFixed(2);
 
   cont.innerHTML = faltante > 0.01
-    ? `Promedio con lo que llevas hasta ahora: <b>${promedioParcial}</b> (falta ${faltante.toFixed(0)}% por calificar)`
+    ? `Promedio con lo que llevas hasta ahora: <b>${promedioParcial}</b> (falta ${faltante.toFixed(1)}% del total por calificar)`
     : `Promedio ponderado final: <b>${promedioParcial}</b>`;
 }
 
@@ -1863,12 +1941,13 @@ function calcularNotaNecesaria() {
 
   if (isNaN(objetivo)) { cont.innerHTML = 'Escribe una nota objetivo válida.'; return; }
 
+  const items = itemsPlanos();
   let sumaPonderadaConocida = 0, porcentajePendiente = 0;
-  notasEditableState.forEach(s => {
-    if (s.nota !== null && !isNaN(s.nota)) {
-      sumaPonderadaConocida += (s.porcentaje / 100) * s.nota;
+  items.forEach(it => {
+    if (it.nota !== null && !isNaN(it.nota)) {
+      sumaPonderadaConocida += (it.pctAbs / 100) * it.nota;
     } else {
-      porcentajePendiente += s.porcentaje;
+      porcentajePendiente += it.pctAbs;
     }
   });
 
@@ -1886,9 +1965,9 @@ function calcularNotaNecesaria() {
   if (necesaria <= 0) {
     cont.innerHTML = `✅ Con lo que ya tienes alcanzas ${objetivo}, sin importar lo que saques en lo pendiente.`;
   } else if (necesaria > 5) {
-    cont.innerHTML = `❌ No es posible llegar a ${objetivo}: necesitarías ${necesaria.toFixed(2)} en promedio (el máximo es 5.0) en el ${porcentajePendiente.toFixed(0)}% que falta.`;
+    cont.innerHTML = `❌ No es posible llegar a ${objetivo}: necesitarías ${necesaria.toFixed(2)} en promedio (el máximo es 5.0) en el ${porcentajePendiente.toFixed(1)}% del total que falta.`;
   } else {
-    cont.innerHTML = `Necesitas que el promedio ponderado de lo que falta (${porcentajePendiente.toFixed(0)}%) sea de al menos <b>${necesaria.toFixed(2)}</b> para llegar a ${objetivo}.`;
+    cont.innerHTML = `Necesitas que el promedio ponderado de lo que falta (${porcentajePendiente.toFixed(1)}% del total) sea de al menos <b>${necesaria.toFixed(2)}</b> para llegar a ${objetivo}.`;
   }
 }
 
