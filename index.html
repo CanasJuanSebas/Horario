@@ -387,8 +387,14 @@ body.dark-mode .btn.danger:hover{background:#3d160f}
 .notas-table th,.notas-table td{border:1px solid var(--bd);padding:5px 6px;text-align:center}
 .notas-table th{background:var(--forest);color:#f2ead9;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
 .notas-table td:first-child{text-align:left}
+.notas-table input[type=number],#notas-objetivo{
+  width:64px;text-align:center;padding:4px 5px;border:1.5px solid var(--bd);border-radius:5px;
+  background:var(--sf2);color:var(--tx);font-family:'Public Sans',sans-serif;font-size:12.5px;
+}
+.notas-table input[type=number]:focus,#notas-objetivo:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 2px rgba(31,61,43,.12)}
 #notas-promedio{margin-top:10px;font-weight:700;color:var(--forest);font-family:'Fraunces',serif;font-size:15px}
 body.dark-mode #notas-promedio{color:#dcead5}
+#notas-objetivo-resultado{margin-top:9px;font-size:12.5px;line-height:1.5}
 #notas-mensaje{font-size:12.5px;color:var(--tx2)}
 #notas-resultado{max-height:320px;overflow-y:auto}
 
@@ -692,6 +698,7 @@ let _currentGrade = '11';
 let currentWeek = 1;
 let allData = {};
 let allEvents = [];
+let notasEditableState = [];
 
 // Getter y setter para currentGrade para controlar acceso
 Object.defineProperty(window, 'currentGrade', {
@@ -1689,6 +1696,21 @@ document.getElementById('mm-clear').onclick = async () => {
 // (el que genera main.py + Dockerfile), ej: "https://api-notas.onrender.com"
 const NOTAS_API_URL = 'https://pruebapaginaweb-qlq7.onrender.com';
 
+function formatearErrorAPI(err) {
+  // FastAPI puede devolver detail como:
+  //  - un string simple: "Usuario o contraseña incorrectos."
+  //  - una lista de errores de validación (422): [{loc, msg, type}, ...]
+  if (!err || !err.detail) return 'Ocurrió un error al consultar las notas.';
+  if (typeof err.detail === 'string') return err.detail;
+  if (Array.isArray(err.detail)) {
+    return err.detail.map(d => {
+      const campo = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : '';
+      return campo ? `${campo}: ${d.msg}` : d.msg;
+    }).join(' | ');
+  }
+  try { return JSON.stringify(err.detail); } catch (e) { return 'Ocurrió un error al consultar las notas.'; }
+}
+
 function openNotasModal() {
   document.getElementById('notas-mensaje').textContent = '';
   document.getElementById('notas-resultado').innerHTML = '';
@@ -1727,7 +1749,8 @@ document.getElementById('notas-consultar').onclick = async () => {
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      mensaje.textContent = err.detail || 'Ocurrió un error al consultar las notas.';
+      mensaje.textContent = formatearErrorAPI(err);
+      console.error('Detalle del error del backend:', err);
       return;
     }
 
@@ -1749,7 +1772,7 @@ function renderNotasResultado(detalle) {
 
   let html = `<div style="font-weight:700;color:var(--forest);margin-top:4px">${detalle.asignatura} — Periodo ${detalle.periodo}</div>`;
   if (detalle.docente) html += `<div style="font-size:11.5px;color:var(--tx2);margin-top:2px">${detalle.docente}</div>`;
-  html += `<div style="margin-top:6px;font-size:13px">Nota general del periodo: <b>${detalle.nota_general}</b></div>`;
+  html += `<div style="margin-top:6px;font-size:13px">Nota general reportada por Q10: <b>${detalle.nota_general}</b></div>`;
 
   if (!detalle.subnotas || !detalle.subnotas.length) {
     html += '<div class="no-tasks">Esta materia no tiene subnotas detalladas para este periodo.</div>';
@@ -1757,28 +1780,115 @@ function renderNotasResultado(detalle) {
     return;
   }
 
-  html += '<table class="notas-table"><tr><th>Actividad</th><th>%</th><th>Nota</th></tr>';
-  let sumaPonderada = 0, sumaPorcentajes = 0;
-
-  detalle.subnotas.forEach(s => {
-    html += `<tr><td>${s.nombre}</td><td>${s.porcentaje}</td><td>${s.nota}</td></tr>`;
-
+  // Estado editable: parte de lo que trajo el backend, pero el usuario
+  // puede modificar cualquier nota (incluidas las que ya estaban puestas)
+  // para simular escenarios.
+  notasEditableState = detalle.subnotas.map(s => {
     const pct = parseFloat((s.porcentaje || '').replace('%', '').replace(',', '.'));
-    const nota = parseFloat((s.nota || '').replace(',', '.'));
-    if (!isNaN(pct) && !isNaN(nota)) {
-      sumaPonderada += (pct / 100) * nota;
-      sumaPorcentajes += pct;
-    }
+    const notaNum = parseFloat((s.nota || '').replace(',', '.'));
+    return {
+      nombre: s.nombre,
+      porcentaje: isNaN(pct) ? 0 : pct,
+      nota: isNaN(notaNum) ? null : notaNum
+    };
+  });
+
+  html += '<div style="font-size:11px;color:var(--tx2);margin-top:8px">Puedes editar cualquier nota para simular escenarios.</div>';
+  html += '<table class="notas-table"><tr><th>Actividad</th><th>%</th><th>Nota</th></tr>';
+
+  notasEditableState.forEach((s, idx) => {
+    const valorInicial = s.nota !== null ? s.nota : '';
+    html += `<tr>
+      <td>${s.nombre}</td>
+      <td>${s.porcentaje ? s.porcentaje + '%' : '-'}</td>
+      <td><input type="number" class="subnota-input" data-idx="${idx}" step="0.1" min="0" max="5" value="${valorInicial}" placeholder="-"></td>
+    </tr>`;
   });
 
   html += '</table>';
+  html += '<div id="notas-promedio"></div>';
+
+  html += `<div class="divider"></div>
+    <div style="font-size:11.5px;font-weight:600;text-transform:uppercase;color:var(--tx2);margin-bottom:6px">¿Qué necesitas sacar para pasar?</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="margin:0;text-transform:none;font-weight:500;font-size:13px;color:var(--tx)">Nota objetivo</label>
+      <input type="number" id="notas-objetivo" step="0.1" min="0" max="5" value="3.5">
+      <button class="btn primary" id="notas-calcular-btn" style="padding:6px 14px;font-size:12.5px">Calcular</button>
+    </div>
+    <div id="notas-objetivo-resultado"></div>`;
+
   resultado.innerHTML = html;
 
-  if (sumaPorcentajes > 0) {
-    // Promedio ponderado con las subnotas que sí tienen % y nota numérica
-    const promedio = (sumaPonderada * (100 / sumaPorcentajes)).toFixed(2);
-    resultado.insertAdjacentHTML('beforeend',
-      `<div id="notas-promedio">Promedio ponderado (según % registrados): ${promedio}</div>`);
+  resultado.querySelectorAll('.subnota-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.idx, 10);
+      const val = inp.value.trim();
+      notasEditableState[idx].nota = val === '' ? null : parseFloat(val.replace(',', '.'));
+      actualizarPromedioEditable();
+    });
+  });
+
+  document.getElementById('notas-calcular-btn').onclick = calcularNotaNecesaria;
+
+  actualizarPromedioEditable();
+}
+
+function actualizarPromedioEditable() {
+  const cont = document.getElementById('notas-promedio');
+  if (!cont) return;
+
+  let sumaPonderada = 0, sumaPorcentajesConocidos = 0, sumaPorcentajesTotal = 0;
+  notasEditableState.forEach(s => {
+    sumaPorcentajesTotal += s.porcentaje;
+    if (s.nota !== null && !isNaN(s.nota)) {
+      sumaPonderada += (s.porcentaje / 100) * s.nota;
+      sumaPorcentajesConocidos += s.porcentaje;
+    }
+  });
+
+  if (sumaPorcentajesConocidos === 0) { cont.innerHTML = ''; return; }
+
+  const faltante = sumaPorcentajesTotal - sumaPorcentajesConocidos;
+  const promedioParcial = (sumaPonderada * (100 / sumaPorcentajesConocidos)).toFixed(2);
+
+  cont.innerHTML = faltante > 0.01
+    ? `Promedio con lo que llevas hasta ahora: <b>${promedioParcial}</b> (falta ${faltante.toFixed(0)}% por calificar)`
+    : `Promedio ponderado final: <b>${promedioParcial}</b>`;
+}
+
+function calcularNotaNecesaria() {
+  const cont = document.getElementById('notas-objetivo-resultado');
+  const objetivoInput = document.getElementById('notas-objetivo');
+  const objetivo = parseFloat(objetivoInput.value.replace(',', '.'));
+
+  if (isNaN(objetivo)) { cont.innerHTML = 'Escribe una nota objetivo válida.'; return; }
+
+  let sumaPonderadaConocida = 0, porcentajePendiente = 0;
+  notasEditableState.forEach(s => {
+    if (s.nota !== null && !isNaN(s.nota)) {
+      sumaPonderadaConocida += (s.porcentaje / 100) * s.nota;
+    } else {
+      porcentajePendiente += s.porcentaje;
+    }
+  });
+
+  if (porcentajePendiente <= 0.01) {
+    if (sumaPonderadaConocida >= objetivo) {
+      cont.innerHTML = `✅ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) alcanza el objetivo.`;
+    } else {
+      cont.innerHTML = `❌ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) no alcanza ${objetivo}. Ya no quedan actividades pendientes para compensarlo.`;
+    }
+    return;
+  }
+
+  const necesaria = (objetivo - sumaPonderadaConocida) / (porcentajePendiente / 100);
+
+  if (necesaria <= 0) {
+    cont.innerHTML = `✅ Con lo que ya tienes alcanzas ${objetivo}, sin importar lo que saques en lo pendiente.`;
+  } else if (necesaria > 5) {
+    cont.innerHTML = `❌ No es posible llegar a ${objetivo}: necesitarías ${necesaria.toFixed(2)} en promedio (el máximo es 5.0) en el ${porcentajePendiente.toFixed(0)}% que falta.`;
+  } else {
+    cont.innerHTML = `Necesitas que el promedio ponderado de lo que falta (${porcentajePendiente.toFixed(0)}%) sea de al menos <b>${necesaria.toFixed(2)}</b> para llegar a ${objetivo}.`;
   }
 }
 
