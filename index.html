@@ -1263,7 +1263,8 @@ function buildTable() {
       const key = `${block.idx}-${col}`;
       const mat = mats[key] || '';
       const entry = wd[key] || {};
-      const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due);
+      const canSeeReclamo = entry.type !== 'reclamo' || entry.reclamoUser === getUserKey() || (currentUser && currentUser.isAdmin);
+      const hasTask = entry.task && entry.task.trim() && !isExpired(entry.due) && canSeeReclamo;
       const isDelivered = entry.userStatus && entry.userStatus[getUserKey()] === 'entregada';
       const holiday = isHoliday(currentWeek, col);
       const events = getEventsForDate(getDayDate(currentWeek, col));
@@ -1290,7 +1291,7 @@ function buildTable() {
           html += `<div class="due-badge">📅 ${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</div>`;
         }
       }
-      if (entry.notes && entry.notes.trim()) html += `<div class="notes-snippet">📝 ${entry.notes}</div>`;
+      if (entry.notes && entry.notes.trim() && canSeeReclamo) html += `<div class="notes-snippet">📝 ${entry.notes}</div>`;
       events.forEach(e => {
         let eventText = `🎪 ${e.name}`;
         if (e.startTime) {
