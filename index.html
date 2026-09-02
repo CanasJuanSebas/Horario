@@ -663,7 +663,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="overlay" id="overlay-notas">
   <div class="modal" style="max-width:540px">
     <h3>🧮 Calculador de Notas</h3>
-    <div class="msub">Ingresa tus credenciales de Q10 para consultar tus notas y calcular tu promedio</div>
+    <div class="msub">Consulta las subnotas de UNA materia del periodo actual</div>
+    <label>Materia</label>
+    <input type="text" id="notas-materia" placeholder="Ej: Matemáticas" autocomplete="off">
     <label>Usuario</label>
     <input type="text" id="notas-usuario" placeholder="Tu usuario de Q10" autocomplete="off">
     <label>Contraseña</label>
@@ -1685,15 +1687,16 @@ document.getElementById('mm-clear').onclick = async () => {
 /* ================= CALCULADOR DE NOTAS ================= */
 // Reemplaza esto con la URL real de tu backend en Render una vez desplegado
 // (el que genera main.py + Dockerfile), ej: "https://api-notas.onrender.com"
-const NOTAS_API_URL = 'https://pruebapaginaweb-qlq7.onrender.com';
+const NOTAS_API_URL = 'https://TU-BACKEND-EN-RENDER.onrender.com';
 
 function openNotasModal() {
   document.getElementById('notas-mensaje').textContent = '';
   document.getElementById('notas-resultado').innerHTML = '';
+  document.getElementById('notas-materia').value = '';
   document.getElementById('notas-usuario').value = '';
   document.getElementById('notas-contrasena').value = '';
   document.getElementById('overlay-notas').classList.add('open');
-  setTimeout(() => document.getElementById('notas-usuario').focus(), 80);
+  setTimeout(() => document.getElementById('notas-materia').focus(), 80);
 }
 
 document.getElementById('notas-cancel').onclick = () => document.getElementById('overlay-notas').classList.remove('open');
@@ -1702,13 +1705,14 @@ document.getElementById('overlay-notas').onclick = (e) => {
 };
 
 document.getElementById('notas-consultar').onclick = async () => {
+  const materia = document.getElementById('notas-materia').value.trim();
   const usuario = document.getElementById('notas-usuario').value.trim();
   const contrasena = document.getElementById('notas-contrasena').value.trim();
   const mensaje = document.getElementById('notas-mensaje');
   const resultado = document.getElementById('notas-resultado');
   const btn = document.getElementById('notas-consultar');
 
-  if (!usuario || !contrasena) { mensaje.textContent = 'Completa usuario y contraseña.'; return; }
+  if (!materia || !usuario || !contrasena) { mensaje.textContent = 'Completa materia, usuario y contraseña.'; return; }
 
   btn.disabled = true;
   mensaje.textContent = 'Consultando... esto puede tardar hasta 1 minuto.';
@@ -1718,7 +1722,7 @@ document.getElementById('notas-consultar').onclick = async () => {
     const resp = await fetch(`${NOTAS_API_URL}/api/notas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, contrasena })
+      body: JSON.stringify({ usuario, contrasena, materia })
     });
 
     if (!resp.ok) {
@@ -1727,46 +1731,54 @@ document.getElementById('notas-consultar').onclick = async () => {
       return;
     }
 
-    const materias = await resp.json();
+    const detalle = await resp.json();
     mensaje.textContent = '';
-    renderNotasResultado(materias);
+    renderNotasResultado(detalle);
   } catch (err) {
-    mensaje.textContent = 'No se pudo conectar con el servidor. Intenta de nuevo.';
+    // "Failed to fetch" cae aquí: casi siempre es NOTAS_API_URL sin
+    // desplegar, CORS mal configurado, o el backend dormido/caído.
+    mensaje.textContent = 'No se pudo conectar con el servidor. Revisa que el backend esté desplegado y que NOTAS_API_URL sea correcta.';
+    console.error('Error de conexión con el backend de notas:', err);
   } finally {
     btn.disabled = false;
   }
 };
 
-function renderNotasResultado(materias) {
+function renderNotasResultado(detalle) {
   const resultado = document.getElementById('notas-resultado');
-  if (!materias || !materias.length) {
-    resultado.innerHTML = '<div class="no-tasks">No se encontraron notas.</div>';
+
+  let html = `<div style="font-weight:700;color:var(--forest);margin-top:4px">${detalle.asignatura} — Periodo ${detalle.periodo}</div>`;
+  if (detalle.docente) html += `<div style="font-size:11.5px;color:var(--tx2);margin-top:2px">${detalle.docente}</div>`;
+  html += `<div style="margin-top:6px;font-size:13px">Nota general del periodo: <b>${detalle.nota_general}</b></div>`;
+
+  if (!detalle.subnotas || !detalle.subnotas.length) {
+    html += '<div class="no-tasks">Esta materia no tiene subnotas detalladas para este periodo.</div>';
+    resultado.innerHTML = html;
     return;
   }
 
-  let html = '<table class="notas-table"><tr><th>Asignatura</th><th>P1</th><th>P2</th><th>P3</th><th>P4</th><th>Acum.</th></tr>';
-  let suma = 0, conteo = 0;
+  html += '<table class="notas-table"><tr><th>Actividad</th><th>%</th><th>Nota</th></tr>';
+  let sumaPonderada = 0, sumaPorcentajes = 0;
 
-  materias.forEach(m => {
-    html += `<tr>
-      <td>${m.asignatura}</td>
-      <td>${m.periodo_1}</td>
-      <td>${m.periodo_2}</td>
-      <td>${m.periodo_3}</td>
-      <td>${m.periodo_4}</td>
-      <td>${m.nota_acumulada}</td>
-    </tr>`;
+  detalle.subnotas.forEach(s => {
+    html += `<tr><td>${s.nombre}</td><td>${s.porcentaje}</td><td>${s.nota}</td></tr>`;
 
-    const valor = parseFloat((m.nota_acumulada || '').replace(',', '.'));
-    if (!isNaN(valor)) { suma += valor; conteo++; }
+    const pct = parseFloat((s.porcentaje || '').replace('%', '').replace(',', '.'));
+    const nota = parseFloat((s.nota || '').replace(',', '.'));
+    if (!isNaN(pct) && !isNaN(nota)) {
+      sumaPonderada += (pct / 100) * nota;
+      sumaPorcentajes += pct;
+    }
   });
 
   html += '</table>';
   resultado.innerHTML = html;
 
-  if (conteo > 0) {
-    const promedio = (suma / conteo).toFixed(2);
-    resultado.insertAdjacentHTML('beforeend', `<div id="notas-promedio">Promedio general: ${promedio}</div>`);
+  if (sumaPorcentajes > 0) {
+    // Promedio ponderado con las subnotas que sí tienen % y nota numérica
+    const promedio = (sumaPonderada * (100 / sumaPorcentajes)).toFixed(2);
+    resultado.insertAdjacentHTML('beforeend',
+      `<div id="notas-promedio">Promedio ponderado (según % registrados): ${promedio}</div>`);
   }
 }
 
