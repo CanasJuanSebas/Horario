@@ -670,17 +670,26 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="overlay" id="overlay-notas">
   <div class="modal" style="max-width:540px">
     <h3>🧮 Calculador de Notas</h3>
-    <div class="msub">Consulta las subnotas de UNA materia del periodo actual</div>
-    <label>Materia</label>
-    <input type="text" id="notas-materia" placeholder="Ej: Matemáticas" autocomplete="off">
+    <div class="msub">Ingresa tus credenciales de Q10 para ver tu lista de materias</div>
     <label>Usuario</label>
     <input type="text" id="notas-usuario" placeholder="Tu usuario de Q10" autocomplete="off">
     <label>Contraseña</label>
     <input type="password" id="notas-contrasena" placeholder="Tu contraseña de Q10" autocomplete="off">
     <div class="modal-btns">
       <button class="btn" id="notas-cancel">Cerrar</button>
-      <button class="btn primary" id="notas-consultar">Consultar</button>
+      <button class="btn primary" id="notas-buscar-materias-btn">Buscar materias</button>
     </div>
+    <div id="notas-materias-mensaje"></div>
+
+    <div id="notas-materias-wrap" class="hidden">
+      <div class="divider"></div>
+      <label>Materia</label>
+      <select id="notas-materia-select"></select>
+      <div class="modal-btns">
+        <button class="btn primary" id="notas-consultar">Consultar</button>
+      </div>
+    </div>
+
     <div id="notas-mensaje"></div>
     <div id="notas-resultado"></div>
   </div>
@@ -1695,7 +1704,7 @@ document.getElementById('mm-clear').onclick = async () => {
 /* ================= CALCULADOR DE NOTAS ================= */
 // Reemplaza esto con la URL real de tu backend en Render una vez desplegado
 // (el que genera main.py + Dockerfile), ej: "https://api-notas.onrender.com"
-const NOTAS_API_URL = 'https://pruebapaginaweb-qlq7.onrender.com';
+const NOTAS_API_URL = 'https://TU-BACKEND-EN-RENDER.onrender.com';
 
 function formatearErrorAPI(err) {
   // FastAPI puede devolver detail como:
@@ -1713,13 +1722,15 @@ function formatearErrorAPI(err) {
 }
 
 function openNotasModal() {
-  document.getElementById('notas-mensaje').textContent = '';
-  document.getElementById('notas-resultado').innerHTML = '';
-  document.getElementById('notas-materia').value = '';
   document.getElementById('notas-usuario').value = '';
   document.getElementById('notas-contrasena').value = '';
+  document.getElementById('notas-materias-mensaje').textContent = '';
+  document.getElementById('notas-materias-wrap').classList.add('hidden');
+  document.getElementById('notas-materia-select').innerHTML = '';
+  document.getElementById('notas-mensaje').textContent = '';
+  document.getElementById('notas-resultado').innerHTML = '';
   document.getElementById('overlay-notas').classList.add('open');
-  setTimeout(() => document.getElementById('notas-materia').focus(), 80);
+  setTimeout(() => document.getElementById('notas-usuario').focus(), 80);
 }
 
 document.getElementById('notas-cancel').onclick = () => document.getElementById('overlay-notas').classList.remove('open');
@@ -1727,18 +1738,62 @@ document.getElementById('overlay-notas').onclick = (e) => {
   if (e.target === document.getElementById('overlay-notas')) document.getElementById('overlay-notas').classList.remove('open');
 };
 
-document.getElementById('notas-consultar').onclick = async () => {
-  const materia = document.getElementById('notas-materia').value.trim();
+document.getElementById('notas-buscar-materias-btn').onclick = async () => {
   const usuario = document.getElementById('notas-usuario').value.trim();
   const contrasena = document.getElementById('notas-contrasena').value.trim();
+  const mensaje = document.getElementById('notas-materias-mensaje');
+  const wrap = document.getElementById('notas-materias-wrap');
+  const btn = document.getElementById('notas-buscar-materias-btn');
+
+  if (!usuario || !contrasena) { mensaje.textContent = 'Completa usuario y contraseña.'; return; }
+
+  btn.disabled = true;
+  mensaje.textContent = 'Buscando tus materias... esto puede tardar unos segundos.';
+  wrap.classList.add('hidden');
+  document.getElementById('notas-mensaje').textContent = '';
+  document.getElementById('notas-resultado').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${NOTAS_API_URL}/api/materias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, contrasena })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      mensaje.textContent = formatearErrorAPI(err);
+      console.error('Detalle del error del backend:', err);
+      return;
+    }
+
+    const materias = await resp.json();
+    if (!materias || !materias.length) { mensaje.textContent = 'No se encontraron materias.'; return; }
+
+    const select = document.getElementById('notas-materia-select');
+    select.innerHTML = materias.map(m => `<option value="${m.replace(/"/g, '&quot;')}">${m}</option>`).join('');
+    wrap.classList.remove('hidden');
+    mensaje.textContent = '';
+  } catch (err) {
+    mensaje.textContent = 'No se pudo conectar con el servidor. Revisa que el backend esté desplegado y que NOTAS_API_URL sea correcta.';
+    console.error('Error de conexión con el backend de notas:', err);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+document.getElementById('notas-consultar').onclick = async () => {
+  const usuario = document.getElementById('notas-usuario').value.trim();
+  const contrasena = document.getElementById('notas-contrasena').value.trim();
+  const materia = document.getElementById('notas-materia-select').value;
   const mensaje = document.getElementById('notas-mensaje');
   const resultado = document.getElementById('notas-resultado');
   const btn = document.getElementById('notas-consultar');
 
-  if (!materia || !usuario || !contrasena) { mensaje.textContent = 'Completa materia, usuario y contraseña.'; return; }
+  if (!usuario || !contrasena || !materia) { mensaje.textContent = 'Selecciona una materia primero.'; return; }
 
   btn.disabled = true;
-  mensaje.textContent = 'Consultando... esto puede tardar hasta 1 minuto.';
+  mensaje.textContent = 'Consultando la materia...';
   resultado.innerHTML = '';
 
   try {
@@ -1759,8 +1814,6 @@ document.getElementById('notas-consultar').onclick = async () => {
     mensaje.textContent = '';
     renderNotasResultado(detalle);
   } catch (err) {
-    // "Failed to fetch" cae aquí: casi siempre es NOTAS_API_URL sin
-    // desplegar, CORS mal configurado, o el backend dormido/caído.
     mensaje.textContent = 'No se pudo conectar con el servidor. Revisa que el backend esté desplegado y que NOTAS_API_URL sea correcta.';
     console.error('Error de conexión con el backend de notas:', err);
   } finally {
@@ -1790,10 +1843,8 @@ function renderNotasResultado(detalle) {
     return isNaN(n) ? null : n;
   };
 
-  // Estado editable con la jerarquía real: cada categoría pesa X% del
-  // TOTAL de la materia; si tiene sub-actividades, esas pesan X% de LA
-  // CATEGORÍA (no del total) — por eso nunca se suman directo con las
-  // demás categorías.
+  // Jerarquía real: cada categoría pesa X% del TOTAL; si tiene
+  // sub-actividades, esas pesan X% de LA CATEGORÍA (no del total).
   notasEditableState = detalle.categorias.map(cat => ({
     nombre: cat.nombre,
     porcentaje: parsePct(cat.porcentaje),
@@ -1805,7 +1856,15 @@ function renderNotasResultado(detalle) {
     }))
   }));
 
-  html += '<div style="font-size:11px;color:var(--tx2);margin-top:8px">Puedes editar cualquier nota para simular escenarios. El % de cada actividad indentada es sobre SU categoría, no sobre el total.</div>';
+  // Verificación: promedio calculado con los datos actuales vs. lo que
+  // reporta Q10 para el periodo (deben coincidir si el reparto 80/15/5%
+  // -o el que tenga tu colegio- está bien aplicado).
+  const promedioVerificacion = calcularPromedioActual(itemsPlanos());
+  if (promedioVerificacion !== null) {
+    html += `<div style="margin-top:4px;font-size:11px;color:var(--tx2)">Verificación: con las notas actuales calculamos <b>${promedioVerificacion.toFixed(2)}</b> — Q10 reporta <b>${detalle.nota_general}</b> para este periodo.</div>`;
+  }
+
+  html += '<div style="font-size:11px;color:var(--tx2);margin-top:8px">Puedes editar cualquier nota para simular escenarios. El % de una fila indentada (»)  es sobre SU categoría, no sobre el total.</div>';
   html += '<table class="notas-table"><tr><th>Actividad</th><th>%</th><th>Nota</th></tr>';
 
   notasEditableState.forEach((cat, catIdx) => {
@@ -1844,6 +1903,7 @@ function renderNotasResultado(detalle) {
       <label style="margin:0;text-transform:none;font-weight:500;font-size:13px;color:var(--tx)">Nota objetivo</label>
       <input type="number" id="notas-objetivo" step="0.1" min="0" max="5" value="3.5">
       <button class="btn primary" id="notas-calcular-btn" style="padding:6px 14px;font-size:12.5px">Calcular</button>
+      <button class="btn" id="notas-simular-btn" style="padding:6px 14px;font-size:12.5px">Simular en la tabla</button>
     </div>
     <div id="notas-objetivo-resultado"></div>`;
 
@@ -1869,36 +1929,69 @@ function renderNotasResultado(detalle) {
   });
 
   document.getElementById('notas-calcular-btn').onclick = calcularNotaNecesaria;
+  document.getElementById('notas-simular-btn').onclick = simularNotaNecesaria;
 
   actualizarPromedioEditable();
 }
 
 // Convierte la jerarquía (categorías + sub-actividades) en una lista PLANA
-// de items con su peso ABSOLUTO real sobre el total de la materia. Esto es
-// lo único que se necesita para calcular el promedio y la nota necesaria,
-// sin importar cuántos niveles tenga la tabla.
+// de items con su peso ABSOLUTO real sobre el total de la materia, más
+// getter/setter para leer y escribir directamente sobre el estado original
+// (así "Simular" puede rellenar los campos vacíos).
 function itemsPlanos() {
   const items = [];
   notasEditableState.forEach(cat => {
     if (!cat.subactividades || cat.subactividades.length === 0) {
-      items.push({ pctAbs: cat.porcentaje, nota: cat.nota });
+      items.push({
+        pctAbs: cat.porcentaje,
+        get nota() { return cat.nota; },
+        setNota: (v) => { cat.nota = v; }
+      });
     } else {
       cat.subactividades.forEach(sa => {
         // % de la sub-actividad es relativo a SU categoría (ej. 10% de un
         // 80%) => peso real sobre el total = categoría% * subactividad%/100
-        items.push({ pctAbs: cat.porcentaje * (sa.porcentaje / 100), nota: sa.nota });
+        items.push({
+          pctAbs: cat.porcentaje * (sa.porcentaje / 100),
+          get nota() { return sa.nota; },
+          setNota: (v) => { sa.nota = v; }
+        });
       });
     }
   });
   return items;
 }
 
+function calcularPromedioActual(items) {
+  let sumaPonderada = 0, sumaPct = 0;
+  items.forEach(it => {
+    if (it.nota !== null && !isNaN(it.nota)) {
+      sumaPonderada += (it.pctAbs / 100) * it.nota;
+      sumaPct += it.pctAbs;
+    }
+  });
+  return sumaPct > 0 ? (sumaPonderada * (100 / sumaPct)) : null;
+}
+
+function refrescarInputsDesdeEstado() {
+  document.querySelectorAll('.cat-input').forEach(inp => {
+    const catIdx = parseInt(inp.dataset.cat, 10);
+    const val = notasEditableState[catIdx].nota;
+    inp.value = (val !== null && !isNaN(val)) ? val : '';
+  });
+  document.querySelectorAll('.sub-input').forEach(inp => {
+    const catIdx = parseInt(inp.dataset.cat, 10);
+    const subIdx = parseInt(inp.dataset.sub, 10);
+    const val = notasEditableState[catIdx].subactividades[subIdx].nota;
+    inp.value = (val !== null && !isNaN(val)) ? val : '';
+  });
+}
+
 function actualizarPromedioEditable() {
   const cont = document.getElementById('notas-promedio');
   if (!cont) return;
 
-  // Actualiza el valor mostrado por categoría (solo para las que tienen
-  // sub-actividades, calculado en vivo a partir de sus hijos)
+  // Valor mostrado por categoría (solo las que tienen sub-actividades)
   notasEditableState.forEach((cat, catIdx) => {
     if (!cat.subactividades || cat.subactividades.length === 0) return;
     const span = document.getElementById(`cat-computed-${catIdx}`);
@@ -1915,32 +2008,22 @@ function actualizarPromedioEditable() {
   });
 
   const items = itemsPlanos();
-  let sumaPonderada = 0, sumaPorcentajesConocidos = 0, sumaPorcentajesTotal = 0;
-  items.forEach(it => {
-    sumaPorcentajesTotal += it.pctAbs;
-    if (it.nota !== null && !isNaN(it.nota)) {
-      sumaPonderada += (it.pctAbs / 100) * it.nota;
-      sumaPorcentajesConocidos += it.pctAbs;
-    }
-  });
+  let sumaPorcentajesTotal = 0;
+  items.forEach(it => { sumaPorcentajesTotal += it.pctAbs; });
 
-  if (sumaPorcentajesConocidos === 0) { cont.innerHTML = ''; return; }
+  const promedioParcial = calcularPromedioActual(items);
+  if (promedioParcial === null) { cont.innerHTML = ''; return; }
 
+  let sumaPorcentajesConocidos = 0;
+  items.forEach(it => { if (it.nota !== null && !isNaN(it.nota)) sumaPorcentajesConocidos += it.pctAbs; });
   const faltante = sumaPorcentajesTotal - sumaPorcentajesConocidos;
-  const promedioParcial = (sumaPonderada * (100 / sumaPorcentajesConocidos)).toFixed(2);
 
   cont.innerHTML = faltante > 0.01
-    ? `Promedio con lo que llevas hasta ahora: <b>${promedioParcial}</b> (falta ${faltante.toFixed(1)}% del total por calificar)`
-    : `Promedio ponderado final: <b>${promedioParcial}</b>`;
+    ? `Promedio con lo que llevas hasta ahora: <b>${promedioParcial.toFixed(2)}</b> (falta ${faltante.toFixed(1)}% del total por calificar)`
+    : `Promedio ponderado final: <b>${promedioParcial.toFixed(2)}</b>`;
 }
 
-function calcularNotaNecesaria() {
-  const cont = document.getElementById('notas-objetivo-resultado');
-  const objetivoInput = document.getElementById('notas-objetivo');
-  const objetivo = parseFloat(objetivoInput.value.replace(',', '.'));
-
-  if (isNaN(objetivo)) { cont.innerHTML = 'Escribe una nota objetivo válida.'; return; }
-
+function _calcularNecesaria(objetivo) {
   const items = itemsPlanos();
   let sumaPonderadaConocida = 0, porcentajePendiente = 0;
   items.forEach(it => {
@@ -1950,17 +2033,25 @@ function calcularNotaNecesaria() {
       porcentajePendiente += it.pctAbs;
     }
   });
+  const necesaria = porcentajePendiente > 0.01
+    ? (objetivo - sumaPonderadaConocida) / (porcentajePendiente / 100)
+    : null;
+  return { sumaPonderadaConocida, porcentajePendiente, necesaria, items };
+}
+
+function calcularNotaNecesaria() {
+  const cont = document.getElementById('notas-objetivo-resultado');
+  const objetivo = parseFloat(document.getElementById('notas-objetivo').value.replace(',', '.'));
+  if (isNaN(objetivo)) { cont.innerHTML = 'Escribe una nota objetivo válida.'; return; }
+
+  const { sumaPonderadaConocida, porcentajePendiente, necesaria } = _calcularNecesaria(objetivo);
 
   if (porcentajePendiente <= 0.01) {
-    if (sumaPonderadaConocida >= objetivo) {
-      cont.innerHTML = `✅ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) alcanza el objetivo.`;
-    } else {
-      cont.innerHTML = `❌ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) no alcanza ${objetivo}. Ya no quedan actividades pendientes para compensarlo.`;
-    }
+    cont.innerHTML = sumaPonderadaConocida >= objetivo
+      ? `✅ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) alcanza el objetivo.`
+      : `❌ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) no alcanza ${objetivo}. Ya no quedan actividades pendientes para compensarlo.`;
     return;
   }
-
-  const necesaria = (objetivo - sumaPonderadaConocida) / (porcentajePendiente / 100);
 
   if (necesaria <= 0) {
     cont.innerHTML = `✅ Con lo que ya tienes alcanzas ${objetivo}, sin importar lo que saques en lo pendiente.`;
@@ -1968,6 +2059,37 @@ function calcularNotaNecesaria() {
     cont.innerHTML = `❌ No es posible llegar a ${objetivo}: necesitarías ${necesaria.toFixed(2)} en promedio (el máximo es 5.0) en el ${porcentajePendiente.toFixed(1)}% del total que falta.`;
   } else {
     cont.innerHTML = `Necesitas que el promedio ponderado de lo que falta (${porcentajePendiente.toFixed(1)}% del total) sea de al menos <b>${necesaria.toFixed(2)}</b> para llegar a ${objetivo}.`;
+  }
+}
+
+function simularNotaNecesaria() {
+  const cont = document.getElementById('notas-objetivo-resultado');
+  const objetivo = parseFloat(document.getElementById('notas-objetivo').value.replace(',', '.'));
+  if (isNaN(objetivo)) { cont.innerHTML = 'Escribe una nota objetivo válida.'; return; }
+
+  const { sumaPonderadaConocida, porcentajePendiente, necesaria, items } = _calcularNecesaria(objetivo);
+
+  if (porcentajePendiente <= 0.01) {
+    calcularNotaNecesaria();
+    return;
+  }
+
+  const valorARellenar = Math.min(Math.max(necesaria, 0), 5);
+
+  items.forEach(it => {
+    if (it.nota === null || isNaN(it.nota)) it.setNota(valorARellenar);
+  });
+
+  refrescarInputsDesdeEstado();
+  actualizarPromedioEditable();
+
+  if (necesaria > 5) {
+    const promedioConCinco = sumaPonderadaConocida + (porcentajePendiente / 100) * 5;
+    cont.innerHTML = `❌ Ni sacando 5.0 en todo lo pendiente alcanzas ${objetivo} (llegarías a ${promedioConCinco.toFixed(2)}). Se rellenó con 5.0 como referencia.`;
+  } else if (necesaria <= 0) {
+    cont.innerHTML = `✅ Ya alcanzabas el objetivo; se rellenó lo pendiente con 0 solo como referencia visual.`;
+  } else {
+    cont.innerHTML = `Se rellenaron las actividades pendientes con <b>${valorARellenar.toFixed(2)}</b> — la nota mínima que necesitas en promedio para llegar a ${objetivo}.`;
   }
 }
 
