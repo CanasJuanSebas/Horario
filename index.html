@@ -390,7 +390,9 @@ body.dark-mode .btn.danger:hover{background:#3d160f}
 }
 .notas-simple-mat{font-size:14px;font-weight:600;color:var(--tx);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .notas-simple-val{font-size:15px;font-weight:700;color:var(--forest);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.notas-simple-val-warn{font-family:'Public Sans',sans-serif;font-size:12.5px;color:var(--r-tx);text-align:right;white-space:normal}
 body.dark-mode .notas-simple-val{color:#9fcf8f}
+body.dark-mode .notas-simple-val-warn{color:var(--r-tx)}
 #notas-resultado{max-height:360px;overflow-y:auto}
 
 /* ---------- TOASTS ---------- */
@@ -664,7 +666,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="overlay" id="overlay-notas">
   <div class="modal" style="max-width:540px">
     <h3>🧮 Calculador de Notas</h3>
-    <div class="msub">Resultado = (Periodo 1 + Periodo 2 + Periodo 3) - 14, para todas tus materias</div>
+    <div class="msub">Resultado = 14 - (Periodo 1 + Periodo 2 + Periodo 3), para todas tus materias</div>
     <label>Usuario</label>
     <input type="text" id="notas-usuario" placeholder="Tu usuario de Q10" autocomplete="off">
     <label>Contraseña</label>
@@ -1768,9 +1770,11 @@ function renderNotasResultado(detalle) {
 
   let html = '<div class="notas-simple-list">';
   materias.forEach(m => {
+    const passed = m.promedio <= 1;
+    const val = passed ? 'Ya pasó pa el año' : m.promedio.toFixed(2);
     html += `<div class="notas-simple-item">
       <span class="notas-simple-mat">${m.asignatura}</span>
-      <span class="notas-simple-val">${m.promedio.toFixed(2)}</span>
+      <span class="notas-simple-val${passed ? ' notas-simple-val-warn' : ''}">${val}</span>
     </div>`;
   });
   html += '</div>';
