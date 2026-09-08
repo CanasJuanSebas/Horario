@@ -383,10 +383,14 @@ body.dark-mode .btn.danger:hover{background:#3d160f}
 .plazo-choice input[type=radio]{width:auto}
 
 /* ---------- CALCULADOR DE NOTAS ---------- */
-.notas-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}
-.notas-table th,.notas-table td{border:1px solid var(--bd);padding:5px 6px;text-align:center}
-.notas-table th{background:var(--forest);color:#f2ead9;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
-.notas-table td:first-child{text-align:left}
+.notas-simple-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.notas-simple-item{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:11px 14px;border:1.5px solid var(--bd);border-radius:var(--rad-s);background:var(--sf2);
+}
+.notas-simple-mat{font-size:14px;font-weight:600;color:var(--tx);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notas-simple-val{font-size:15px;font-weight:700;color:var(--forest);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+body.dark-mode .notas-simple-val{color:#9fcf8f}
 #notas-resultado{max-height:360px;overflow-y:auto}
 
 /* ---------- TOASTS ---------- */
@@ -660,7 +664,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="overlay" id="overlay-notas">
   <div class="modal" style="max-width:540px">
     <h3>🧮 Calculador de Notas</h3>
-    <div class="msub">Resultado = (Periodo 1 + Periodo 2 + Periodo 3) / 14, para todas tus materias</div>
+    <div class="msub">Resultado = (Periodo 1 + Periodo 2 + Periodo 3) - 14, para todas tus materias</div>
     <label>Usuario</label>
     <input type="text" id="notas-usuario" placeholder="Tu usuario de Q10" autocomplete="off">
     <label>Contraseña</label>
@@ -1762,18 +1766,14 @@ function renderNotasResultado(detalle) {
     return;
   }
 
-  let html = '<div style="font-size:11px;color:var(--tx2);margin-top:6px">Resultado = (Periodo 1 + Periodo 2 + Periodo 3) / 14, por materia</div>';
-  html += '<table class="notas-table"><tr><th>Materia</th><th>P1</th><th>P2</th><th>P3</th><th>Resultado</th></tr>';
+  let html = '<div class="notas-simple-list">';
   materias.forEach(m => {
-    html += `<tr>
-      <td style="text-align:left">${m.asignatura}${m.docente ? `<div style="font-size:10px;color:var(--tx3)">${m.docente}</div>` : ''}</td>
-      <td>${m.p1}</td>
-      <td>${m.p2}</td>
-      <td>${m.p3}</td>
-      <td style="font-weight:700;color:var(--forest)">${m.promedio.toFixed(2)}</td>
-    </tr>`;
+    html += `<div class="notas-simple-item">
+      <span class="notas-simple-mat">${m.asignatura}</span>
+      <span class="notas-simple-val">${m.promedio.toFixed(2)}</span>
+    </div>`;
   });
-  html += '</table>';
+  html += '</div>';
   resultado.innerHTML = html;
 }
 
