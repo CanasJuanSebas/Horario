@@ -387,17 +387,7 @@ body.dark-mode .btn.danger:hover{background:#3d160f}
 .notas-table th,.notas-table td{border:1px solid var(--bd);padding:5px 6px;text-align:center}
 .notas-table th{background:var(--forest);color:#f2ead9;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
 .notas-table td:first-child{text-align:left}
-.notas-table input[type=number],#notas-objetivo{
-  width:64px;text-align:center;padding:4px 5px;border:1.5px solid var(--bd);border-radius:5px;
-  background:var(--sf2);color:var(--tx);font-family:'Public Sans',sans-serif;font-size:12.5px;
-}
-.notas-table input[type=number]:focus,#notas-objetivo:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 2px rgba(31,61,43,.12)}
-.notas-table tr[style*="font-weight:600"] td{background:var(--sf3)}
-#notas-promedio{margin-top:10px;font-weight:700;color:var(--forest);font-family:'Fraunces',serif;font-size:15px}
-body.dark-mode #notas-promedio{color:#dcead5}
-#notas-objetivo-resultado{margin-top:9px;font-size:12.5px;line-height:1.5}
-#notas-mensaje{font-size:12.5px;color:var(--tx2)}
-#notas-resultado{max-height:320px;overflow-y:auto}
+#notas-resultado{max-height:360px;overflow-y:auto}
 
 /* ---------- TOASTS ---------- */
 #toast-container{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px;max-width:320px}
@@ -492,7 +482,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   <h1>Horario <span id="current-grade-label">11°</span> <span id="connection-status" class="status-dot" title="Desconectado"></span></h1>
   <div class="header-buttons">
     <button id="notif-toggle" title="Recibir notificaciones de tareas y clases">🔕 Activar notificaciones</button>
-    <button id="calc-notas-btn" onclick="openNotasModal()" title="Consultar tus notas de Q10 y calcular tu promedio">🧮 Calculador de Notas</button>
+    <button id="calc-notas-btn" onclick="openNotasModal()" title="Consultar tus notas de Q10 (P1+P2+P3 de todas las materias)">🧮 Calculador de Notas</button>
     <button id="logout-btn" onclick="handleLogout()">🚪 Cerrar Sesión</button>
     <button id="accesoq10"><a href ="https://site6.q10.com/login?ReturnUrl=%2F&aplentId=6b624247-5ec3-4fed-968f-86645e0afb0c" target="_blank">Acceso a Q10</a></button>
   </div>
@@ -670,9 +660,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="overlay" id="overlay-notas">
   <div class="modal" style="max-width:540px">
     <h3>🧮 Calculador de Notas</h3>
-    <div class="msub">Consulta las subnotas de UNA materia del periodo actual</div>
-    <label>Materia</label>
-    <input type="text" id="notas-materia" placeholder="Ej: Matemáticas" autocomplete="off">
+    <div class="msub">Resultado = (Periodo 1 + Periodo 2 + Periodo 3) / 14, para todas tus materias</div>
     <label>Usuario</label>
     <input type="text" id="notas-usuario" placeholder="Tu usuario de Q10" autocomplete="off">
     <label>Contraseña</label>
@@ -699,7 +687,6 @@ let _currentGrade = '11';
 let currentWeek = 1;
 let allData = {};
 let allEvents = [];
-let notasEditableState = [];
 
 // Getter y setter para currentGrade para controlar acceso
 Object.defineProperty(window, 'currentGrade', {
@@ -1715,11 +1702,10 @@ function formatearErrorAPI(err) {
 function openNotasModal() {
   document.getElementById('notas-mensaje').textContent = '';
   document.getElementById('notas-resultado').innerHTML = '';
-  document.getElementById('notas-materia').value = '';
   document.getElementById('notas-usuario').value = '';
   document.getElementById('notas-contrasena').value = '';
   document.getElementById('overlay-notas').classList.add('open');
-  setTimeout(() => document.getElementById('notas-materia').focus(), 80);
+  setTimeout(() => document.getElementById('notas-usuario').focus(), 80);
 }
 
 document.getElementById('notas-cancel').onclick = () => document.getElementById('overlay-notas').classList.remove('open');
@@ -1728,24 +1714,23 @@ document.getElementById('overlay-notas').onclick = (e) => {
 };
 
 document.getElementById('notas-consultar').onclick = async () => {
-  const materia = document.getElementById('notas-materia').value.trim();
   const usuario = document.getElementById('notas-usuario').value.trim();
   const contrasena = document.getElementById('notas-contrasena').value.trim();
   const mensaje = document.getElementById('notas-mensaje');
   const resultado = document.getElementById('notas-resultado');
   const btn = document.getElementById('notas-consultar');
 
-  if (!materia || !usuario || !contrasena) { mensaje.textContent = 'Completa materia, usuario y contraseña.'; return; }
+  if (!usuario || !contrasena) { mensaje.textContent = 'Completa usuario y contraseña.'; return; }
 
   btn.disabled = true;
-  mensaje.textContent = 'Consultando... esto puede tardar hasta 1 minuto.';
+  mensaje.textContent = 'Consultando todas tus materias... esto puede tardar hasta 1 minuto.';
   resultado.innerHTML = '';
 
   try {
     const resp = await fetch(`${NOTAS_API_URL}/api/notas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, contrasena, materia })
+      body: JSON.stringify({ usuario, contrasena })
     });
 
     if (!resp.ok) {
@@ -1770,205 +1755,26 @@ document.getElementById('notas-consultar').onclick = async () => {
 
 function renderNotasResultado(detalle) {
   const resultado = document.getElementById('notas-resultado');
+  const materias = (detalle && detalle.materias) || [];
 
-  let html = `<div style="font-weight:700;color:var(--forest);margin-top:4px">${detalle.asignatura} — Periodo ${detalle.periodo}</div>`;
-  if (detalle.docente) html += `<div style="font-size:11.5px;color:var(--tx2);margin-top:2px">${detalle.docente}</div>`;
-  html += `<div style="margin-top:6px;font-size:13px">Nota general reportada por Q10: <b>${detalle.nota_general}</b></div>`;
-
-  if (!detalle.categorias || !detalle.categorias.length) {
-    html += '<div class="no-tasks">Esta materia no tiene el detalle de notas para este periodo.</div>';
-    resultado.innerHTML = html;
+  if (!materias.length) {
+    resultado.innerHTML = '<div class="no-tasks">No se encontraron materias con notas.</div>';
     return;
   }
 
-  const parsePct = (s) => {
-    const n = parseFloat((s || '').replace('%', '').replace(',', '.'));
-    return isNaN(n) ? 0 : n;
-  };
-  const parseNota = (s) => {
-    const n = parseFloat((s || '').replace(',', '.'));
-    return isNaN(n) ? null : n;
-  };
-
-  // Estado editable con la jerarquía real: cada categoría pesa X% del
-  // TOTAL de la materia; si tiene sub-actividades, esas pesan X% de LA
-  // CATEGORÍA (no del total) — por eso nunca se suman directo con las
-  // demás categorías.
-  notasEditableState = detalle.categorias.map(cat => ({
-    nombre: cat.nombre,
-    porcentaje: parsePct(cat.porcentaje),
-    nota: parseNota(cat.nota),
-    subactividades: (cat.subactividades || []).map(sa => ({
-      nombre: sa.nombre,
-      porcentaje: parsePct(sa.porcentaje),
-      nota: parseNota(sa.nota)
-    }))
-  }));
-
-  html += '<div style="font-size:11px;color:var(--tx2);margin-top:8px">Puedes editar cualquier nota para simular escenarios. El % de cada actividad indentada es sobre SU categoría, no sobre el total.</div>';
-  html += '<table class="notas-table"><tr><th>Actividad</th><th>%</th><th>Nota</th></tr>';
-
-  notasEditableState.forEach((cat, catIdx) => {
-    const tieneHijos = cat.subactividades && cat.subactividades.length > 0;
-
-    if (!tieneHijos) {
-      const valorInicial = cat.nota !== null ? cat.nota : '';
-      html += `<tr style="font-weight:600">
-        <td>${cat.nombre}</td>
-        <td>${cat.porcentaje ? cat.porcentaje + '%' : '-'}</td>
-        <td><input type="number" class="cat-input" data-cat="${catIdx}" step="0.1" min="0" max="5" value="${valorInicial}" placeholder="-"></td>
-      </tr>`;
-    } else {
-      html += `<tr style="font-weight:600">
-        <td>${cat.nombre}</td>
-        <td>${cat.porcentaje ? cat.porcentaje + '%' : '-'}</td>
-        <td><span id="cat-computed-${catIdx}">-</span></td>
-      </tr>`;
-      cat.subactividades.forEach((sa, saIdx) => {
-        const valorInicial = sa.nota !== null ? sa.nota : '';
-        html += `<tr>
-          <td style="padding-left:18px;color:var(--tx2)">» ${sa.nombre}</td>
-          <td>${sa.porcentaje ? sa.porcentaje + '%' : '-'}</td>
-          <td><input type="number" class="sub-input" data-cat="${catIdx}" data-sub="${saIdx}" step="0.1" min="0" max="5" value="${valorInicial}" placeholder="-"></td>
-        </tr>`;
-      });
-    }
+  let html = '<div style="font-size:11px;color:var(--tx2);margin-top:6px">Resultado = (Periodo 1 + Periodo 2 + Periodo 3) / 14, por materia</div>';
+  html += '<table class="notas-table"><tr><th>Materia</th><th>P1</th><th>P2</th><th>P3</th><th>Resultado</th></tr>';
+  materias.forEach(m => {
+    html += `<tr>
+      <td style="text-align:left">${m.asignatura}${m.docente ? `<div style="font-size:10px;color:var(--tx3)">${m.docente}</div>` : ''}</td>
+      <td>${m.p1}</td>
+      <td>${m.p2}</td>
+      <td>${m.p3}</td>
+      <td style="font-weight:700;color:var(--forest)">${m.promedio.toFixed(2)}</td>
+    </tr>`;
   });
-
   html += '</table>';
-  html += '<div id="notas-promedio"></div>';
-
-  html += `<div class="divider"></div>
-    <div style="font-size:11.5px;font-weight:600;text-transform:uppercase;color:var(--tx2);margin-bottom:6px">¿Qué necesitas sacar para pasar?</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <label style="margin:0;text-transform:none;font-weight:500;font-size:13px;color:var(--tx)">Nota objetivo</label>
-      <input type="number" id="notas-objetivo" step="0.1" min="0" max="5" value="3.5">
-      <button class="btn primary" id="notas-calcular-btn" style="padding:6px 14px;font-size:12.5px">Calcular</button>
-    </div>
-    <div id="notas-objetivo-resultado"></div>`;
-
   resultado.innerHTML = html;
-
-  resultado.querySelectorAll('.cat-input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const catIdx = parseInt(inp.dataset.cat, 10);
-      const val = inp.value.trim();
-      notasEditableState[catIdx].nota = val === '' ? null : parseFloat(val.replace(',', '.'));
-      actualizarPromedioEditable();
-    });
-  });
-
-  resultado.querySelectorAll('.sub-input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const catIdx = parseInt(inp.dataset.cat, 10);
-      const subIdx = parseInt(inp.dataset.sub, 10);
-      const val = inp.value.trim();
-      notasEditableState[catIdx].subactividades[subIdx].nota = val === '' ? null : parseFloat(val.replace(',', '.'));
-      actualizarPromedioEditable();
-    });
-  });
-
-  document.getElementById('notas-calcular-btn').onclick = calcularNotaNecesaria;
-
-  actualizarPromedioEditable();
-}
-
-// Convierte la jerarquía (categorías + sub-actividades) en una lista PLANA
-// de items con su peso ABSOLUTO real sobre el total de la materia. Esto es
-// lo único que se necesita para calcular el promedio y la nota necesaria,
-// sin importar cuántos niveles tenga la tabla.
-function itemsPlanos() {
-  const items = [];
-  notasEditableState.forEach(cat => {
-    if (!cat.subactividades || cat.subactividades.length === 0) {
-      items.push({ pctAbs: cat.porcentaje, nota: cat.nota });
-    } else {
-      cat.subactividades.forEach(sa => {
-        // % de la sub-actividad es relativo a SU categoría (ej. 10% de un
-        // 80%) => peso real sobre el total = categoría% * subactividad%/100
-        items.push({ pctAbs: cat.porcentaje * (sa.porcentaje / 100), nota: sa.nota });
-      });
-    }
-  });
-  return items;
-}
-
-function actualizarPromedioEditable() {
-  const cont = document.getElementById('notas-promedio');
-  if (!cont) return;
-
-  // Actualiza el valor mostrado por categoría (solo para las que tienen
-  // sub-actividades, calculado en vivo a partir de sus hijos)
-  notasEditableState.forEach((cat, catIdx) => {
-    if (!cat.subactividades || cat.subactividades.length === 0) return;
-    const span = document.getElementById(`cat-computed-${catIdx}`);
-    if (!span) return;
-
-    let sumaPond = 0, sumaPctConocido = 0;
-    cat.subactividades.forEach(sa => {
-      if (sa.nota !== null && !isNaN(sa.nota)) {
-        sumaPond += (sa.porcentaje / 100) * sa.nota;
-        sumaPctConocido += sa.porcentaje;
-      }
-    });
-    span.textContent = sumaPctConocido > 0 ? (sumaPond * (100 / sumaPctConocido)).toFixed(2) : '-';
-  });
-
-  const items = itemsPlanos();
-  let sumaPonderada = 0, sumaPorcentajesConocidos = 0, sumaPorcentajesTotal = 0;
-  items.forEach(it => {
-    sumaPorcentajesTotal += it.pctAbs;
-    if (it.nota !== null && !isNaN(it.nota)) {
-      sumaPonderada += (it.pctAbs / 100) * it.nota;
-      sumaPorcentajesConocidos += it.pctAbs;
-    }
-  });
-
-  if (sumaPorcentajesConocidos === 0) { cont.innerHTML = ''; return; }
-
-  const faltante = sumaPorcentajesTotal - sumaPorcentajesConocidos;
-  const promedioParcial = (sumaPonderada * (100 / sumaPorcentajesConocidos)).toFixed(2);
-
-  cont.innerHTML = faltante > 0.01
-    ? `Promedio con lo que llevas hasta ahora: <b>${promedioParcial}</b> (falta ${faltante.toFixed(1)}% del total por calificar)`
-    : `Promedio ponderado final: <b>${promedioParcial}</b>`;
-}
-
-function calcularNotaNecesaria() {
-  const cont = document.getElementById('notas-objetivo-resultado');
-  const objetivoInput = document.getElementById('notas-objetivo');
-  const objetivo = parseFloat(objetivoInput.value.replace(',', '.'));
-
-  if (isNaN(objetivo)) { cont.innerHTML = 'Escribe una nota objetivo válida.'; return; }
-
-  const items = itemsPlanos();
-  let sumaPonderadaConocida = 0, porcentajePendiente = 0;
-  items.forEach(it => {
-    if (it.nota !== null && !isNaN(it.nota)) {
-      sumaPonderadaConocida += (it.pctAbs / 100) * it.nota;
-    } else {
-      porcentajePendiente += it.pctAbs;
-    }
-  });
-
-  if (porcentajePendiente <= 0.01) {
-    if (sumaPonderadaConocida >= objetivo) {
-      cont.innerHTML = `✅ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) alcanza el objetivo.`;
-    } else {
-      cont.innerHTML = `❌ Ya tienes todas las notas y tu promedio (${sumaPonderadaConocida.toFixed(2)}) no alcanza ${objetivo}. Ya no quedan actividades pendientes para compensarlo.`;
-    }
-    return;
-  }
-
-  const necesaria = (objetivo - sumaPonderadaConocida) / (porcentajePendiente / 100);
-
-  if (necesaria <= 0) {
-    cont.innerHTML = `✅ Con lo que ya tienes alcanzas ${objetivo}, sin importar lo que saques en lo pendiente.`;
-  } else if (necesaria > 5) {
-    cont.innerHTML = `❌ No es posible llegar a ${objetivo}: necesitarías ${necesaria.toFixed(2)} en promedio (el máximo es 5.0) en el ${porcentajePendiente.toFixed(1)}% del total que falta.`;
-  } else {
-    cont.innerHTML = `Necesitas que el promedio ponderado de lo que falta (${porcentajePendiente.toFixed(1)}% del total) sea de al menos <b>${necesaria.toFixed(2)}</b> para llegar a ${objetivo}.`;
-  }
 }
 
 async function loadInitialData({ silent = false } = {}) {
